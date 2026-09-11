@@ -14,8 +14,6 @@ CAMPUSCART/
 ├── Makefile                      # Make commands for local dev, serving, and git operations
 ├── package.json                  # Root npm scripts
 ├── README.md                     # Documentation & git guide
-├── HomrPageIdea.mp4              # Design reference video (Git-ignored)
-├── Recording 2026-09-11 061050.mp4 # Feature demo recording (Git-ignored)
 ├── index.html                    # Root entry point with instant redirect to frontend
 └── frontend/                     # Modular Frontend Application
     ├── index.html                # Clean HTML entry point
