@@ -35,26 +35,7 @@ CAMPUSCART/
         └── app.js                # Core App state, modals, and React mounting
 ```
 
----
 
-## 🌟 Key Features Adapted from `HomrPageIdea.mp4`
-
-1. **Floating Island Pill Navigation**:
-   - Centered floating glassmorphism pill with geometric logo, navigation tabs (`HOME`, `MARKETPLACE`, `SKILLS`, `COURSES`), cart badge, and hamburger drawer.
-2. **Hero Section with Giant Watermark Typography**:
-   - Massive translucent typography watermark in the background (`CAMPUSCART`).
-   - Clean stat callout: `25k+ Active Students`.
-   - Bold sans-serif/grotesk headline with pill CTA buttons.
-3. **Interactive Procedural Showcase Reel**:
-   - Canvas-driven 60fps interactive video showcasing identity verification, item scanning, and QR pickups with real-time controls.
-4. **Step-by-Step Roadmap & Accordion**:
-   - Structured milestones and interactive expandable FAQ accordion.
-5. **Connected Student Commerce**:
-   - In-campus buyer-seller simulated live chat.
-   - `@campus.edu` student authentication modal.
-   - Safe QR pickup token generator with confetti celebration.
-
----
 
 ## 🚀 How to Run Locally
 
