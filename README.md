@@ -1,0 +1,104 @@
+# 🎓 CampusCart — Next-Gen Student Marketplace (Genesis-Inspired)
+
+CampusCart is a college marketplace and peer skill exchange platform built with modern web aesthetics (Genesis-inspired design language, glassmorphism, procedural canvas reels, and cryptographic QR pickups).
+
+---
+
+## 📁 Repository Structure
+
+The project is structured with a modular frontend architecture prepared for standalone use and future backend API integration:
+
+```text
+CAMPUSCART/
+├── .gitignore                    # Excludes heavy video binaries, node_modules, temp files
+├── Makefile                      # Make commands for local dev, serving, and git operations
+├── package.json                  # Root npm scripts
+├── README.md                     # Documentation & git guide
+├── HomrPageIdea.mp4              # Design reference video (Git-ignored)
+├── Recording 2026-09-11 061050.mp4 # Feature demo recording (Git-ignored)
+├── index.html                    # Root entry point with instant redirect to frontend
+└── frontend/                     # Modular Frontend Application
+    ├── index.html                # Clean HTML entry point
+    ├── package.json              # Frontend scripts
+    ├── css/
+    │   └── style.css             # Typography, watermarks, glassmorphism, animations
+    └── js/
+        ├── data/
+        │   └── mockData.js       # Campus marketplace mock database
+        ├── components/
+        │   ├── VideoShowcase.js          # Procedural 60fps canvas motion reel
+        │   ├── CircularWheelShowcase.js  # Interactive category rotating wheel
+        │   ├── OverviewGatewayView.js    # Pre-login Genesis hero & comparison
+        │   ├── HomrPageIdeaView.js       # Post-login marketplace dashboard
+        │   ├── MarketplaceView.js        # Catalog grid & search filter
+        │   ├── ServicesView.js           # Student tutoring & gigs
+        │   ├── CourseView.js             # Course materials exchange
+        │   └── CartView.js               # Shopping cart & QR token generator
+        └── app.js                # Core App state, modals, and React mounting
+```
+
+---
+
+## 🌟 Key Features Adapted from `HomrPageIdea.mp4`
+
+1. **Floating Island Pill Navigation**:
+   - Centered floating glassmorphism pill with geometric logo, navigation tabs (`HOME`, `MARKETPLACE`, `SKILLS`, `COURSES`), cart badge, and hamburger drawer.
+2. **Hero Section with Giant Watermark Typography**:
+   - Massive translucent typography watermark in the background (`CAMPUSCART`).
+   - Clean stat callout: `25k+ Active Students`.
+   - Bold sans-serif/grotesk headline with pill CTA buttons.
+3. **Interactive Procedural Showcase Reel**:
+   - Canvas-driven 60fps interactive video showcasing identity verification, item scanning, and QR pickups with real-time controls.
+4. **Step-by-Step Roadmap & Accordion**:
+   - Structured milestones and interactive expandable FAQ accordion.
+5. **Connected Student Commerce**:
+   - In-campus buyer-seller simulated live chat.
+   - `@campus.edu` student authentication modal.
+   - Safe QR pickup token generator with confetti celebration.
+
+---
+
+## 🚀 How to Run Locally
+
+You can run the project using **Make**, **NPM**, or **Python**:
+
+### Option 1: Using Make (Recommended)
+```bash
+make dev
+# Launches http://localhost:3000
+```
+Run `make help` to see all available commands (`make serve`, `make clean`, `make git-prep`).
+
+### Option 2: Using NPM
+```bash
+npm run dev
+# or
+npm start
+```
+
+### Option 3: Using Python
+```bash
+python -m http.server 3000 --directory frontend
+```
+
+---
+
+## 📦 Initial Git Push Instructions
+
+The repository has been initialized with a comprehensive [`.gitignore`](file:///d:/CAMPUSCART/.gitignore) that automatically excludes heavy video screen recordings (`*.mp4`) to keep your remote repository lightweight and fast.
+
+To push this codebase to your remote GitHub or GitLab repository:
+
+```bash
+# 1. Check git status
+git status
+
+# 2. Add your remote repository URL (replace with your GitHub repo URL)
+git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPOSITORY_NAME>.git
+
+# 3. Rename branch to main if needed
+git branch -M main
+
+# 4. Push to remote
+git push -u origin main
+```

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CampusCart — Next-Gen Student Exchange & Marketplace</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Inter, Plus Jakarta Sans & Space Grotesk aesthetic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- React 18 & ReactDOM UMD -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  
+  <!-- Babel Standalone (In-browser JSX compilation) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Tailwind Custom Theme Configuration -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f8fafc',
+              900: '#090d16',
+              950: '#030712',
+            },
+            accent: {
+              teal: '#14b8a6',
+              indigo: '#6366f1',
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Custom Stylesheet (Watermarks, Keyframes, Scrollbars, Pill Nav) -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Mock Database for Campus Items, Services, Categories -->
+  <script src="js/data/mockData.js"></script>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-neutral-900 selection:text-white">
+  <!-- React App Root Container -->
+  <div id="root"></div>
+
+  <!-- Modular React Component Scripts -->
+  <script type="text/babel" src="js/components/VideoShowcase.js"></script>
+  <script type="text/babel" src="js/components/CircularWheelShowcase.js"></script>
+  <script type="text/babel" src="js/components/OverviewGatewayView.js"></script>
+  <script type="text/babel" src="js/components/HomrPageIdeaView.js"></script>
+  <script type="text/babel" src="js/components/MarketplaceView.js"></script>
+  <script type="text/babel" src="js/components/ServicesView.js"></script>
+  <script type="text/babel" src="js/components/CourseView.js"></script>
+  <script type="text/babel" src="js/components/CartView.js"></script>
+
+  <!-- Main Application Entry & Mount -->
+  <script type="text/babel" src="js/app.js"></script>
+</body>
+</html>

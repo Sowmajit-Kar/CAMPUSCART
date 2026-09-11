@@ -1,0 +1,85 @@
+/* =============================================================================
+   CampusCart — Next-Gen Student Exchange & Marketplace Stylesheet
+   Genesis-inspired aesthetics, micro-interactions, and typography
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background-color: #fcfcfd;
+  color: #090d16;
+  overflow-x: hidden;
+}
+
+.font-display {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+/* Sleek Watermark Typography matching Genesis from reference */
+.hero-watermark {
+  font-size: clamp(4rem, 16vw, 15rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 0.8;
+  color: rgba(255, 255, 255, 0.22);
+  pointer-events: none;
+  user-select: none;
+}
+
+.hero-watermark-dark {
+  font-size: clamp(4rem, 16vw, 15rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 0.8;
+  color: rgba(0, 0, 0, 0.08);
+  -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.05);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Marquee ticker animation */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: 200%;
+  animation: marquee 28s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* SVGator-Style Shipping Line Animation */
+@keyframes shippingDash {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+.animate-shipping-line {
+  stroke-dasharray: 12 8;
+  animation: shippingDash 2.5s linear infinite;
+}
+
+/* Glassmorphism Floating Pill Nav */
+.floating-pill {
+  background: rgba(22, 24, 29, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Custom minimal scrollbar */
+.custom-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}

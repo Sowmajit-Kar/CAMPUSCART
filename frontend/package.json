@@ -1,0 +1,19 @@
+{
+  "name": "campuscart-frontend",
+  "version": "1.0.0",
+  "description": "CampusCart — Next-Gen Student Exchange & Marketplace",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx serve . -l 3000",
+    "start": "npx serve . -l 3000",
+    "serve:py": "python -m http.server 3000"
+  },
+  "keywords": [
+    "campus",
+    "marketplace",
+    "react",
+    "student-exchange"
+  ],
+  "author": "",
+  "license": "MIT"
+}
