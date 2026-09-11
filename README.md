@@ -1,4 +1,4 @@
-# 🎓 CampusCart — Next-Gen Student Marketplace (Genesis-Inspired)
+# 🎓 CampusCart — Next-Gen Student Marketplace 
 
 CampusCart is a college marketplace and peer skill exchange platform built with modern web aesthetics (Genesis-inspired design language, glassmorphism, procedural canvas reels, and cryptographic QR pickups).
 
