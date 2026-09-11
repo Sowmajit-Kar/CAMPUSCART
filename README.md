@@ -64,7 +64,6 @@ python -m http.server 3000 --directory frontend
 
 ## 📦 Initial Git Push Instructions
 
-The repository has been initialized with a comprehensive [`.gitignore`](file:///d:/CAMPUSCART/.gitignore) that automatically excludes heavy video screen recordings (`*.mp4`) to keep your remote repository lightweight and fast.
 
 To push this codebase to your remote GitHub or GitLab repository:
 
