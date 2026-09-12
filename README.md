@@ -3,6 +3,7 @@
 CampusCart is a college marketplace and peer skill exchange platform built with modern web aesthetics (Genesis-inspired design language, glassmorphism, procedural canvas reels, and cryptographic QR pickups).
 
 ---
+<img width="1500" height="350" alt="image" src="https://github.com/user-attachments/assets/032f9923-3dcb-49eb-8381-fd6a98819bb3" />
 
 ## 📁 Repository Structure
 
