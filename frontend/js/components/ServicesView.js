@@ -31,5 +31,5 @@ const { useState, useEffect, useMemo, useRef } = React;
           </div>
         </section>
       );
-
+    }
 window.ServicesSection = ServicesSection;
