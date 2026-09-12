@@ -46,3 +46,6 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+tests
+.venv
