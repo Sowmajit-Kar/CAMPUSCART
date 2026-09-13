@@ -1,6 +1,6 @@
 import React from "react";
 
-function OrderHistory({ orders, onBack }) {
+function OrderHistory({ orders = [], onBack }) {
   return (
     <section className="mx-auto max-w-6xl px-6 pb-24 pt-32 sm:px-12">
       <div className="mb-8">
@@ -13,7 +13,7 @@ function OrderHistory({ orders, onBack }) {
         </h1>
 
         <p className="mt-2 text-sm text-neutral-500">
-          View your previous campus marketplace orders and pickup tokens.
+          View your previous orders and pickup information.
         </p>
       </div>
 
@@ -54,7 +54,9 @@ function OrderHistory({ orders, onBack }) {
                   </h2>
 
                   <p className="mt-1 text-xs text-neutral-500">
-                    {new Date(order.createdAt).toLocaleString()}
+                    {order.createdAt
+                      ? new Date(order.createdAt).toLocaleString()
+                      : "Date unavailable"}
                   </p>
                 </div>
 
@@ -94,7 +96,8 @@ function OrderHistory({ orders, onBack }) {
                         <p className="text-sm font-bold text-indigo-600">
                           ₹
                           {(
-                            Number(item.price || 0) * Number(item.qty || 1)
+                            Number(item.price || 0) *
+                            Number(item.qty || 1)
                           ).toFixed(2)}
                         </p>
                       </div>

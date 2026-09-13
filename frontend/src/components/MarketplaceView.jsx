@@ -15,9 +15,11 @@ function MarketplaceFullView({
 
 }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
-  const [selectedMode, setSelectedMode] = useState('ALL');
-  const [selectedProduct, setSelectedProduct] = useState(null);
+const [selectedCategory, setSelectedCategory] = useState('ALL');
+const [selectedMode, setSelectedMode] = useState('ALL');
+const [minPrice, setMinPrice] = useState('');
+const [maxPrice, setMaxPrice] = useState('');
+const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
     if (initialProduct) {
@@ -49,14 +51,30 @@ function MarketplaceFullView({
         selectedCategory === 'ALL' ||
         product.category === selectedCategory;
 
-      const matchesMode =
-        selectedMode === 'ALL' ||
-        product.mode === selectedMode;
+      const price = Number(product.price) || 0;
 
-      return matchesSearch && matchesCategory && matchesMode;
-    });
-  }, [products, searchQuery, selectedCategory, selectedMode]);
+const matchesMode =
+  selectedMode === 'ALL' ||
+  product.mode === selectedMode;
 
+const matchesMinPrice =
+  minPrice === '' || price >= Number(minPrice);
+
+const matchesMaxPrice =
+  maxPrice === '' || price <= Number(maxPrice);
+
+return (
+  matchesSearch &&
+  matchesCategory &&
+  matchesMode &&
+  matchesMinPrice &&
+  matchesMaxPrice
+);
+
+      
+  }, [products, searchQuery, selectedCategory, selectedMode,minPrice,
+  maxPrice,]);
+  })
 
   const getActionLabel = mode => {
     if (mode === 'RENT') return 'Rent Item';
@@ -304,27 +322,45 @@ function MarketplaceFullView({
       </div>
 
       {/* Search and filters */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={event => setSearchQuery(event.target.value)}
-          placeholder="Search books, calculators, electronics, bags..."
-          className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  <input
+    type="text"
+    value={searchQuery}
+    onChange={event => setSearchQuery(event.target.value)}
+    placeholder="Search books, calculators, electronics..."
+    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
+  />
 
-        <select
-          value={selectedCategory}
-          onChange={event => setSelectedCategory(event.target.value)}
-          className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
-        >
-          {categories.map(category => (
-            <option key={category} value={category}>
-              {category === 'ALL' ? 'All Categories' : category}
-            </option>
-          ))}
-        </select>
-      </div>
+  <select
+    value={selectedCategory}
+    onChange={event => setSelectedCategory(event.target.value)}
+    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
+  >
+    {categories.map(category => (
+      <option key={category} value={category}>
+        {category === 'ALL' ? 'All Categories' : category}
+      </option>
+    ))}
+  </select>
+
+  <input
+    type="number"
+    min="0"
+    value={minPrice}
+    onChange={event => setMinPrice(event.target.value)}
+    placeholder="Minimum price ₹"
+    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
+  />
+
+  <input
+    type="number"
+    min="0"
+    value={maxPrice}
+    onChange={event => setMaxPrice(event.target.value)}
+    placeholder="Maximum price ₹"
+    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
+  />
+</div>
 
       <div className="flex flex-wrap items-center gap-2">
         {['ALL', 'BUY', 'RENT', 'EXCHANGE'].map(mode => (
@@ -347,13 +383,21 @@ function MarketplaceFullView({
           </button>
         ))}
 
-        {(searchQuery || selectedCategory !== 'ALL' || selectedMode !== 'ALL') && (
+        {(
+  searchQuery ||
+  selectedCategory !== 'ALL' ||
+  selectedMode !== 'ALL' ||
+  minPrice !== '' ||
+  maxPrice !== ''
+) && (
           <button
             onClick={() => {
-              setSearchQuery('');
-              setSelectedCategory('ALL');
-              setSelectedMode('ALL');
-            }}
+  setSearchQuery('');
+  setSelectedCategory('ALL');
+  setSelectedMode('ALL');
+  setMinPrice('');
+  setMaxPrice('');
+}}
             className="ml-2 px-4 py-2 rounded-full text-xs font-bold border border-neutral-200 text-neutral-600 hover:bg-neutral-100"
           >
             Clear Filters
