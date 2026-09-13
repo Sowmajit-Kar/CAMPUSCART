@@ -3,6 +3,7 @@ const { useState, useEffect, useMemo, useRef } = React;
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [wishlistItems, setWishlistItems] = useState([]);
   const [currentRoute, setCurrentRoute] = useState("overview"); // overview | home | marketplace | services | course | cart
   const [cart, setCart] = useState([
     {
@@ -27,7 +28,44 @@ function App() {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
   };
+  const addToWishlist = (product) => {
+    setWishlistItems((previous) => {
+      if (previous.some((item) => item.id === product.id)) {
+        return previous;
+      }
 
+      return [
+        ...previous,
+        {
+          ...product,
+          neededByMe: false,
+        },
+      ];
+    });
+
+    setToastMsg("Item added to your wishlist.");
+  };
+
+  const removeFromWishlist = (productId) => {
+    setWishlistItems((previous) =>
+      previous.filter((product) => product.id !== productId),
+    );
+
+    setToastMsg("Item removed from your wishlist.");
+  };
+
+  const toggleNeededByMe = (productId) => {
+    setWishlistItems((previous) =>
+      previous.map((product) =>
+        product.id === productId
+          ? {
+              ...product,
+              neededByMe: !product.neededByMe,
+            }
+          : product,
+      ),
+    );
+  };
   const handleLogin = (customEmail) => {
     const email = customEmail || loginEmail || "2024cs1089@campus.edu";
     const roll = email.split("@")[0].toUpperCase();
@@ -161,15 +199,15 @@ function App() {
                 MARKETPLACE
               </button>
               <button
-  onClick={() => navigateTo('sell')}
-  class={`px-3 py-1 rounded-full transition-all ${
-    currentRoute === 'sell'
-      ? 'bg-white text-black font-bold shadow'
-      : 'text-neutral-300 hover:text-white'
-  }`}
->
-  SELL ITEM
-</button>
+                onClick={() => navigateTo("sell")}
+                class={`px-3 py-1 rounded-full transition-all ${
+                  currentRoute === "sell"
+                    ? "bg-white text-black font-bold shadow"
+                    : "text-neutral-300 hover:text-white"
+                }`}
+              >
+                SELL ITEM
+              </button>
               <button
                 onClick={() => navigateTo("services")}
                 class={`px-3 py-1 rounded-full transition-all ${currentRoute === "services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
@@ -187,6 +225,17 @@ function App() {
                 class={`px-3 py-1 rounded-full transition-all ${currentRoute === "overview" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 OVERVIEW
+              </button>
+
+              <button
+                onClick={() => navigateTo("wishlist")}
+                class={`px-3 py-1 rounded-full transition-all ${
+                  currentRoute === "wishlist"
+                    ? "bg-white text-black font-bold shadow"
+                    : "text-neutral-300 hover:text-white"
+                }`}
+              >
+                WISHLIST
               </button>
             </div>
           ) : (
@@ -387,23 +436,37 @@ function App() {
           />
         )}
 
-        {currentRoute === 'marketplace' && (
-  <MarketplaceFullView
-    extraProducts={localProducts}
-    onAddToCart={addToCart}
-    onOpenSeller={setSelectedSeller}
-    onStartChat={startChat}
-    onOpenQr={setQrModalItem}
-    onSellItem={() => navigateTo('sell')}
-  />
-)}
+        {currentRoute === "marketplace" && (
+          <MarketplaceFullView
+            extraProducts={localProducts}
+            onAddToCart={addToCart}
+            onOpenSeller={setSelectedSeller}
+            onStartChat={startChat}
+            onOpenQr={setQrModalItem}
+            onSellItem={() => navigateTo("sell")}
+            onAddToWishlist={addToWishlist}
+          />
+        )}
 
-{currentRoute === 'sell' && (
-  <SellItemView
-    onBack={() => navigateTo('marketplace')}
-    onPublish={handlePublishListing}
-  />
-)}
+        {currentRoute === "sell" && (
+          <SellItemView
+            onBack={() => navigateTo("marketplace")}
+            onPublish={handlePublishListing}
+          />
+        )}
+
+        {currentRoute === "wishlist" && (
+          <WishlistView
+            wishlistItems={wishlistItems}
+            onBack={() => navigateTo("marketplace")}
+            onOpenProduct={(product) => {
+              setSelectedProduct(product);
+              navigateTo("marketplace");
+            }}
+            onRemove={removeFromWishlist}
+            onToggleNeeded={toggleNeededByMe}
+          />
+        )}
 
         {currentRoute === "services" && (
           <ServicesSection

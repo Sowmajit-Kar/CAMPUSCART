@@ -6,7 +6,9 @@ function MarketplaceFullView({
   onOpenSeller,
   onStartChat,
   onOpenQr,
-  onSellItem
+  onSellItem,
+   onAddToWishlist,
+  wishlistItems = []
 
 }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,8 +67,9 @@ function MarketplaceFullView({
 
   if (selectedProduct) {
     const product = selectedProduct;
-    const isWishlisted = wishlist.includes(product.id);
-
+  const isWishlisted = wishlistItems.some(
+  item => item.id === product.id
+    );
     return (
       <section class="max-w-7xl mx-auto px-6 sm:px-12 pt-32 pb-20">
         <button
@@ -117,7 +120,7 @@ function MarketplaceFullView({
                 </div>
 
                 <button
-                  onClick={() => toggleWishlist(product.id)}
+                 onClick={() => onAddToWishlist(product)}
                   class={`w-11 h-11 rounded-full border flex items-center justify-center text-xl transition ${
                     isWishlisted
                       ? 'bg-red-50 border-red-200 text-red-500'
@@ -413,7 +416,7 @@ function MarketplaceFullView({
                     </button>
 
                     <button
-                      onClick={() => toggleWishlist(product.id)}
+                      onClick={() => onAddToWishlist(product)}
                       class="text-2xl text-neutral-500 hover:text-red-500 transition"
                       aria-label="Toggle wishlist"
                     >
