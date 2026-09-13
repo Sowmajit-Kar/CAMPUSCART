@@ -1,33 +1,41 @@
-# 🎓 CampusCart — Next-Gen Student Marketplace (Genesis-Inspired)
+<img width="1500" height="350" alt="image" src="https://github.com/user-attachments/assets/032f9923-3dcb-49eb-8381-fd6a98819bb3" />
 
-CampusCart is a college marketplace and peer skill exchange platform built with modern web aesthetics (Genesis-inspired design language, glassmorphism, procedural canvas reels, and cryptographic QR pickups), powered by **Vite + React 18** and **Tailwind CSS**.
+# 🎓 CampusCart — Next-Gen Student Marketplace 
+
+CampusCart is a college marketplace and peer skill exchange platform built with modern web aesthetics (Genesis-inspired design language, glassmorphism, procedural canvas reels, and cryptographic QR pickups).
 
 ---
 
+
 ## 📁 Repository Structure
 
-The project is structured with a modern Vite + React frontend architecture prepared for standalone development and backend API integration:
+The project is structured with a modular architecture prepared for standalone use and backend API integration:
 
 ```text
 CAMPUSCART/
-├── .gitignore                    # Excludes heavy media binaries, node_modules, dist/
-├── Makefile                      # Make commands for local dev, build, and preview
-├── package.json                  # Root npm runner scripts
-├── README.md                     # Documentation & setup guide
-├── backend/                      # Backend services
-├── index.html                    # Root portal launcher
+├── .gitignore                    # Excludes heavy video binaries, node_modules, temp files
+├── LICENSE                       # Project license
+├── Makefile                      # Make commands for local dev, build, and tasks
+├── package.json                  # Root npm orchestrator scripts
+├── README.md                     # Documentation & git guide
+├── index.html                    # Root entry point with instant redirect to frontend
+├── backend/                      # Backend API service
+│   ├── requirements.txt          # Python dependencies
+│   └── app/                      # Application source code
+│       ├── main.py               # API entry point
+│       └── core/                 # Core backend configurations
 └── frontend/                     # Modern Vite + React Application
     ├── index.html                # Vite HTML module entry point
-    ├── package.json              # React 18, Vite, Lucide, Tailwind dependencies
+    ├── package.json              # Frontend scripts & dependencies
     ├── vite.config.js            # Vite build configuration
-    ├── tailwind.config.js        # Custom brand theme & typography
+    ├── tailwind.config.js        # Tailwind styling & theme
     ├── postcss.config.js         # PostCSS pipeline
     └── src/
-        ├── main.jsx              # React 18 createRoot mounting
-        ├── App.jsx               # Core application state, modals & navigation
-        ├── index.css             # Tailwind directives + Genesis watermarks & keyframes
+        ├── main.jsx              # React 18 createRoot mount point
+        ├── App.jsx               # Core application state, modals & routing
+        ├── index.css             # Tailwind directives + watermarks & keyframes
         ├── data/
-        │   └── mockData.js       # Campus marketplace mock database
+        │   └── mockData.js       # Campus marketplace database
         └── components/           # Modular React JSX Components
             ├── VideoShowcase.jsx         # Procedural 60fps canvas motion reel
             ├── CircularWheelShowcase.jsx # Interactive category rotating wheel
@@ -40,46 +48,48 @@ CAMPUSCART/
             └── CartView.jsx              # Shopping cart & QR token generator
 ```
 
----
 
-## 🌟 Key Features
-
-1. **Vite + React 18**: Instant Hot Module Replacement (HMR) and optimized Rollup production builds.
-2. **Floating Island Pill Navigation**: Centered glassmorphism pill with geometric branding, dynamic route switching, and cart count badge.
-3. **Hero Section with Giant Watermark Typography**: Translucent Genesis watermark, campus metric statistics, and call-to-actions.
-4. **Interactive Procedural Showcase Reel**: HTML5 canvas engine rendering 60fps animated reels with chapter controls.
-5. **Student Marketplace & Seller Mode**: Filter by mode (Buy/Rent/Exchange), search, seller trust score badges, and new item listing form.
-6. **QR Handshake Confirmation**: Cryptographic pickup token generator with confetti celebration.
-
----
 
 ## 🚀 How to Run Locally
 
-### Option 1: Using NPM
-```bash
-# 1. Install dependencies (first time only)
-npm run install:frontend
+You can run the project using **Make**, **NPM**, or **Python**:
 
-# 2. Start Vite development server
-npm run dev
-# Launches http://localhost:3000 with instant HMR!
-```
-
-### Option 2: Using Make
+### Option 1: Using Make (Recommended)
 ```bash
-# Start local Vite server
 make dev
+# Launches http://localhost:3000
+```
+Run `make help` to see all available commands (`make dev`, `make build`, `make preview`, `make clean`).
 
-# Build production bundle
-make build
-
-# Preview production build
-make preview
+### Option 2: Using NPM
+```bash
+npm run dev
+# or
+npm start
 ```
 
-### Production Build
-To create an optimized production build:
+### Option 3: Using Python
 ```bash
-npm run build
-# Compiles minified bundle into frontend/dist/
+python -m http.server 3000 --directory frontend
+```
+
+---
+
+## 📦 Initial Git Push Instructions
+
+
+To push this codebase to your remote GitHub or GitLab repository:
+
+```bash
+# 1. Check git status
+git status
+
+# 2. Add your remote repository URL (replace with your GitHub repo URL)
+git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPOSITORY_NAME>.git
+
+# 3. Rename branch to main if needed
+git branch -M main
+
+# 4. Push to remote
+git push -u origin main
 ```
