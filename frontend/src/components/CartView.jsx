@@ -5,6 +5,8 @@ function CartFullView({
   onRemove,
   onContinue,
   onCheckout,
+  onIncrease,
+  onDecrease
 }) {
   const total = cart.reduce(
     (sum, item) => sum + Number(item.price || 0) * item.qty,
@@ -60,7 +62,7 @@ function CartFullView({
                 </p>
               </div>
 
-              <div className="divide-y divide-neutral-200 flex flex-col gap-8">
+              <div className="flex flex-col gap-8 p-4">
                 {cart.map((item) => (
   <div
     key={item.id}
@@ -78,15 +80,39 @@ function CartFullView({
           {item.title}
         </h4>
 
-        <div className="mt-1 flex items-center gap-2">
-          <span className="text-xl font-extrabold text-indigo-600">
-            ₹{Number(item.price || 0).toFixed(2)}
-          </span>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+  <span className="text-xl font-extrabold text-indigo-600">
+    ₹{Number(item.price || 0).toFixed(2)}
+  </span>
 
-          <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
-            Qty: {item.qty}
-          </span>
-        </div>
+  <div className="flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 p-1">
+    <button
+      type="button"
+      onClick={() => onDecrease(item.id)}
+      className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-lg font-bold text-indigo-700 transition hover:bg-indigo-100"
+      aria-label={`Decrease quantity of ${item.title}`}
+    >
+      −
+    </button>
+
+    <span className="min-w-6 text-center text-sm font-bold text-indigo-700">
+      {item.qty}
+    </span>
+
+    <button
+      type="button"
+      onClick={() => onIncrease(item.id)}
+      className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-lg font-bold text-white transition hover:bg-indigo-700"
+      aria-label={`Increase quantity of ${item.title}`}
+    >
+      +
+    </button>
+  </div>
+
+  <span className="text-xs text-slate-500">
+    ₹{(Number(item.price || 0) * item.qty).toFixed(2)} total
+  </span>
+</div>
       </div>
 
       <div className="space-y-2 border-t border-slate-200 pt-3">

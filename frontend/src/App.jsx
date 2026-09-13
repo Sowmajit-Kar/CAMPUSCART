@@ -11,6 +11,7 @@ import ServicesSection from "./components/ServicesView";
 import CourseSection from "./components/CourseView";
 import CartFullView from "./components/CartView";
 import WishlistView from "./components/WishListView.jsx";
+import OrderHistory from "./components/OrderHistory";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -162,6 +163,34 @@ function App() {
 
     showToast(`Added "${product.title}" to cart!`);
   };
+
+  const increaseCartQuantity = (id) => {
+  setCart((previousCart) =>
+    previousCart.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            qty: item.qty + 1,
+          }
+        : item,
+    ),
+  );
+};
+
+const decreaseCartQuantity = (id) => {
+  setCart((previousCart) =>
+    previousCart
+      .map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              qty: item.qty - 1,
+            }
+          : item,
+      )
+      .filter((item) => item.qty > 0),
+  );
+};
 
   const startChat = (seller, item) => {
     setActiveChat({
@@ -317,7 +346,16 @@ function App() {
               >
                 OVERVIEW
               </button>
-
+                <button
+  onClick={() => navigateTo("orders")}
+  className={`rounded-full px-4 py-1.5 transition-all ${
+    currentRoute === "orders"
+      ? "bg-white font-bold text-black shadow"
+      : "text-neutral-300 hover:text-white"
+  }`}
+>
+  ORDERS
+</button>
               <button
                 onClick={() => navigateTo("wishlist")}
                 className={`px-4 py-1.5 rounded-full transition-all ${
@@ -487,6 +525,12 @@ function App() {
                 MY CART ({cart.length})
               </button>
               <button
+  onClick={() => navigateTo("orders")}
+  className="hover:text-neutral-400"
+>
+  ORDER HISTORY
+</button>
+              <button
                 onClick={() => {
                   handleLogout();
                   setNavMenuOpen(false);
@@ -561,7 +605,12 @@ function App() {
             onPublish={handlePublishListing}
           />
         )}
-
+        {currentRoute === "orders" && (
+  <OrderHistory
+    orders={orders}
+    onBack={() => navigateTo("marketplace")}
+  />
+)}
         {currentRoute === "wishlist" && (
           <WishlistView
             wishlistItems={wishlistItems}
@@ -594,16 +643,18 @@ function App() {
         )}
 
         {currentRoute === "cart" && (
-          <CartFullView
-            cart={cart}
-            onRemove={(id) =>
-              setCart((previousCart) =>
-                previousCart.filter((item) => item.id !== id),
-              )
-            }
-            onContinue={() => navigateTo("marketplace")}
-            onCheckout={handleCheckout}
-          />
+         <CartFullView
+  cart={cart}
+  onRemove={(id) =>
+    setCart((previousCart) =>
+      previousCart.filter((item) => item.id !== id),
+    )
+  }
+  onIncrease={increaseCartQuantity}
+  onDecrease={decreaseCartQuantity}
+  onContinue={() => navigateTo("marketplace")}
+  onCheckout={handleCheckout}
+/>
         )}
       </main>
 
