@@ -259,18 +259,34 @@ function App() {
           {/* Right Menu / Cart & User Actions */}
           <div class="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
             {isLoggedIn && (
-              <button
-                onClick={() => navigateTo("cart")}
-                class="relative text-xs text-neutral-300 hover:text-white flex items-center gap-1 font-semibold transition px-2 py-1 rounded-full hover:bg-white/10"
-                title="Cart"
-              >
-                <i data-lucide="shopping-bag" class="w-4 h-4"></i>
-                {cart.length > 0 && (
-                  <span class="bg-white text-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                    {cart.reduce((a, b) => a + b.qty, 0)}
-                  </span>
-                )}
-              </button>
+             <button
+  onClick={() => navigateTo("cart")}
+  class="relative flex items-center justify-center w-9 h-9 rounded-full text-neutral-300 hover:text-white hover:bg-white/10 transition"
+  title="Cart"
+  aria-label="Shopping cart"
+>
+  {/* Shopping bag icon */}
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M6 8h12l1 13H5L6 8Z"></path>
+    <path d="M9 8V6a3 3 0 0 1 6 0v2"></path>
+  </svg>
+
+  {/* Cart item count */}
+  {cart.length > 0 && (
+    <span class="absolute -top-0.5 -right-0.5 bg-white text-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+      {cart.reduce((total, item) => total + item.qty, 0)}
+    </span>
+  )}
+</button>
             )}
 
             {isLoggedIn ? (
