@@ -9,14 +9,21 @@ function MarketplaceFullView({
   onOpenQr,
   onSellItem,
    onAddToWishlist,
-  wishlistItems = []
+  onRemoveFromWishlist,
+  wishlistItems = [],
+  initialProduct = null
 
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedMode, setSelectedMode] = useState('ALL');
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [wishlist, setWishlist] = useState([]);
+
+  useEffect(() => {
+    if (initialProduct) {
+      setSelectedProduct(initialProduct);
+    }
+  }, [initialProduct]);
 
   const products = [
   ...(extraProducts || []),
@@ -50,15 +57,6 @@ function MarketplaceFullView({
     });
   }, [products, searchQuery, selectedCategory, selectedMode]);
 
-  const toggleWishlist = productId => {
-    setWishlist(previous => {
-      if (previous.includes(productId)) {
-        return previous.filter(id => id !== productId);
-      }
-
-      return [...previous, productId];
-    });
-  };
 
   const getActionLabel = mode => {
     if (mode === 'RENT') return 'Rent Item';
@@ -121,7 +119,7 @@ function MarketplaceFullView({
                 </div>
 
                 <button
-                  onClick={() => toggleWishlist(product.id)}
+                  onClick={() => (isWishlisted ? onRemoveFromWishlist(product.id) : onAddToWishlist(product))}
                   className={`w-11 h-11 rounded-full border flex items-center justify-center text-xl transition ${
                     isWishlisted
                       ? 'bg-red-50 border-red-200 text-red-500'
@@ -379,7 +377,7 @@ function MarketplaceFullView({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
           {filteredProducts.map(product => {
-            const isWishlisted = wishlist.includes(product.id);
+            const isWishlisted = wishlistItems.some(item => item.id === product.id);
 
             return (
               <article
@@ -417,7 +415,7 @@ function MarketplaceFullView({
                     </button>
 
                     <button
-                      onClick={() => toggleWishlist(product.id)}
+                      onClick={() => (isWishlisted ? onRemoveFromWishlist(product.id) : onAddToWishlist(product))}
                       className="text-2xl text-neutral-500 hover:text-red-500 transition"
                       aria-label="Toggle wishlist"
                     >

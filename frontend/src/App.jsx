@@ -10,6 +10,7 @@ import SellItemView from './components/SellItemView';
 import ServicesSection from './components/ServicesView';
 import CourseSection from './components/CourseView';
 import CartFullView from './components/CartView';
+import WishlistView from './components/WishListView.jsx';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -34,6 +35,7 @@ function App() {
   const [toastMsg, setToastMsg] = useState(null);
   const [navMenuOpen, setNavMenuOpen] = useState(false);
   const [localProducts, setLocalProducts] = useState([]);
+  const [productToOpen, setProductToOpen] = useState(null);
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -165,7 +167,7 @@ function App() {
               FLOATING ISLAND PILL NAVBAR (Pre-Login vs Post-Login Responsive Modes)
              ========================================================================= */}
       <div className="fixed top-6 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
-        <header className="floating-pill text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-4 sm:gap-6 pointer-events-auto max-w-2xl lg:max-w-4xl w-full whitespace-nowrap">
+        <header className={`floating-pill text-white px-4 sm:px-5 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-3 sm:gap-5 pointer-events-auto whitespace-nowrap ${isLoggedIn ? "w-[calc(100%-2rem)] max-w-[1800px]" : "w-fit max-w-[calc(100%-2rem)]"}`}>
           {/* Minimal Geometric Logo */}
           <button
             onClick={() => navigateTo(isLoggedIn ? "home" : "overview")}
@@ -196,22 +198,22 @@ function App() {
 
           {/* Navigation Links inside Pill */}
           {isLoggedIn ? (
-            <div className="hidden sm:flex items-center gap-1 bg-white/10 p-1 rounded-full text-xs font-semibold flex-shrink-0">
+            <div className="hidden sm:flex items-center gap-3 bg-white/10 p-1.5 rounded-full text-xs font-semibold flex-shrink-0">
               <button
                 onClick={() => navigateTo("home")}
-                className={`px-3 py-1 rounded-full transition-all ${currentRoute === "home" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "home" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 HOME
               </button>
               <button
                 onClick={() => navigateTo("marketplace")}
-                className={`px-3 py-1 rounded-full transition-all ${currentRoute === "marketplace" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "marketplace" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 MARKETPLACE
               </button>
               <button
   onClick={() => navigateTo('sell')}
-  className={`px-3 py-1 rounded-full transition-all ${
+  className={`px-4 py-1.5 rounded-full transition-all ${
     currentRoute === 'sell'
       ? 'bg-white text-black font-bold shadow'
       : 'text-neutral-300 hover:text-white'
@@ -221,26 +223,26 @@ function App() {
 </button>
               <button
                 onClick={() => navigateTo("services")}
-                className={`px-3 py-1 rounded-full transition-all ${currentRoute === "services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 SKILLS
               </button>
               <button
                 onClick={() => navigateTo("course")}
-                className={`px-3 py-1 rounded-full transition-all ${currentRoute === "course" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "course" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 COURSES
               </button>
               <button
                 onClick={() => navigateTo("overview")}
-                className={`px-3 py-1 rounded-full transition-all ${currentRoute === "overview" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "overview" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 OVERVIEW
               </button>
 
               <button
                 onClick={() => navigateTo("wishlist")}
-                class={`px-4 py-1.5 rounded-full transition-all ${
+                className={`px-4 py-1.5 rounded-full transition-all ${
                   currentRoute === "wishlist"
                     ? "bg-white text-black font-bold shadow"
                     : "text-neutral-300 hover:text-white"
@@ -269,7 +271,7 @@ function App() {
                 className="relative text-xs text-neutral-300 hover:text-white flex items-center gap-1 font-semibold transition px-2 py-1 rounded-full hover:bg-white/10"
                 title="Cart"
               >
-                <i data-lucide="shopping-bag" className="w-4 h-4"></i>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 8h14l1 13H4L5 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg>
                 {cart.length > 0 && (
                   <span className="bg-white text-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                     {cart.reduce((a, b) => a + b.qty, 0)}
@@ -456,6 +458,9 @@ function App() {
             onOpenQr={setQrModalItem}
             onSellItem={() => navigateTo("sell")}
             onAddToWishlist={addToWishlist}
+            onRemoveFromWishlist={removeFromWishlist}
+            wishlistItems={wishlistItems}
+            initialProduct={productToOpen}
           />
         )}
 
@@ -471,7 +476,7 @@ function App() {
             wishlistItems={wishlistItems}
             onBack={() => navigateTo("marketplace")}
             onOpenProduct={(product) => {
-              setSelectedProduct(product);
+              setProductToOpen(product);
               navigateTo("marketplace");
             }}
             onRemove={removeFromWishlist}
