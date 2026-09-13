@@ -1,31 +1,33 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import confetti from 'canvas-confetti';
-import { CAMPUS_DATA } from './data/mockData';
-import VideoShowcase from './components/VideoShowcase';
-import CircularWheelShowcase from './components/CircularWheelShowcase';
-import OverviewGatewayView from './components/OverviewGatewayView';
-import HomrPageIdeaView from './components/HomrPageIdeaView';
-import MarketplaceFullView from './components/MarketplaceView';
-import SellItemView from './components/SellItemView';
-import ServicesSection from './components/ServicesView';
-import CourseSection from './components/CourseView';
-import CartFullView from './components/CartView';
-import WishlistView from './components/WishListView.jsx';
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import confetti from "canvas-confetti";
+import { CAMPUS_DATA } from "./data/mockData";
+import VideoShowcase from "./components/VideoShowcase";
+import CircularWheelShowcase from "./components/CircularWheelShowcase";
+import OverviewGatewayView from "./components/OverviewGatewayView";
+import HomrPageIdeaView from "./components/HomrPageIdeaView";
+import MarketplaceFullView from "./components/MarketplaceView";
+import SellItemView from "./components/SellItemView";
+import ServicesSection from "./components/ServicesView";
+import CourseSection from "./components/CourseView";
+import CartFullView from "./components/CartView";
+import WishlistView from "./components/WishListView.jsx";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [wishlistItems, setWishlistItems] = useState([]);
   const [currentRoute, setCurrentRoute] = useState("overview"); // overview | home | marketplace | services | course | cart
-  const [cart, setCart] = useState([
-    {
-      id: 1,
-      title: "Lab Notebook",
-      price: 12.99,
-      qty: 1,
-      image: window.CAMPUS_DATA.products[0].image,
-    },
-  ]);
+  const [cart, setCart] = useState([]);
+
+  const [orders, setOrders] = useState(() => {
+    try {
+      return JSON.parse(
+        window.localStorage.getItem("campuscart-orders") || "[]",
+      );
+    } catch {
+      return [];
+    }
+  });
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -122,24 +124,42 @@ function App() {
   };
 
   const addToCart = (product) => {
-    setCart((prev) => {
-      const exists = prev.find((i) => i.id === product.id);
-      if (exists) {
-        return prev.map((i) =>
-          i.id === product.id ? { ...i, qty: i.qty + 1 } : i,
+    setCart((previousCart) => {
+      const existingItem = previousCart.find((item) => item.id === product.id);
+
+      if (existingItem) {
+        return previousCart.map((item) =>
+          item.id === product.id
+            ? {
+                ...item,
+                qty: item.qty + 1,
+              }
+            : item,
         );
       }
+
+      const sellerName =
+        typeof product.seller === "object"
+          ? product.seller?.name || "Campus Seller"
+          : product.seller || product.sellerName || "Campus Seller";
+
       return [
-        ...prev,
+        ...previousCart,
         {
           id: product.id,
           title: product.title,
-          price: product.price,
+          price: Number(product.price) || 0,
           qty: 1,
           image: product.image,
+          seller: sellerName,
+          pickupLocation:
+            typeof product.pickupLocation === "object"
+              ? product.pickupLocation?.name || "Campus Safe Desk"
+              : product.pickupLocation || "Campus Safe Desk",
         },
       ];
     });
+
     showToast(`Added "${product.title}" to cart!`);
   };
 
@@ -161,13 +181,71 @@ function App() {
 
     setToastMsg("Your listing was published successfully.");
   };
+
+  const handleCheckout = () => {
+    if (cart.length === 0) {
+      showToast("Your cart is empty.");
+      return;
+    }
+
+    const total = cart.reduce(
+      (sum, item) => sum + Number(item.price || 0) * item.qty,
+      0,
+    );
+
+    const orderId = `CC-${Date.now().toString().slice(-8)}`;
+
+    const pickupToken = Math.random().toString(36).slice(2, 8).toUpperCase();
+
+    const newOrder = {
+      id: orderId,
+      createdAt: new Date().toISOString(),
+      status: "Pending Pickup",
+      pickupToken,
+      pickupLocation: cart[0]?.pickupLocation || "Campus Safe Desk",
+      items: cart,
+      total,
+      buyer: currentUser
+        ? {
+            name: currentUser.name,
+            email: currentUser.email,
+            roll: currentUser.roll,
+          }
+        : null,
+    };
+
+    setOrders((previousOrders) => {
+      const nextOrders = [newOrder, ...previousOrders];
+
+      window.localStorage.setItem(
+        "campuscart-orders",
+        JSON.stringify(nextOrders),
+      );
+
+      return nextOrders;
+    });
+
+    setCart([]);
+
+    setQrModalItem(newOrder);
+
+    confetti({
+      particleCount: 90,
+      spread: 70,
+      origin: { y: 0.6 },
+    });
+
+    showToast(`🎉 Order ${orderId} created successfully!`);
+  };
   return (
     <div className="relative min-h-screen flex flex-col bg-[#fcfcfd]">
       {/* =========================================================================
               FLOATING ISLAND PILL NAVBAR (Pre-Login vs Post-Login Responsive Modes)
              ========================================================================= */}
       <div className="fixed top-6 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
-        <header className={`floating-pill text-white px-4 sm:px-5 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-3 sm:gap-5 pointer-events-auto whitespace-nowrap ${isLoggedIn ? "w-[calc(100%-2rem)] max-w-[1800px]" : "w-fit max-w-[calc(100%-2rem)]"}`}>
+        <header
+          className={`floating-pill text-white px-4 sm:px-5 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-3 sm:gap-5 pointer-events-auto whitespace-nowrap ${isLoggedIn ? "w-[calc(100%-2rem)] max-w-[1800px]" : "w-fit max-w-[calc(100%-2rem)]"}`}
+        >
           {/* Minimal Geometric Logo */}
           <button
             onClick={() => navigateTo(isLoggedIn ? "home" : "overview")}
@@ -212,15 +290,15 @@ function App() {
                 MARKETPLACE
               </button>
               <button
-  onClick={() => navigateTo('sell')}
-  className={`px-4 py-1.5 rounded-full transition-all ${
-    currentRoute === 'sell'
-      ? 'bg-white text-black font-bold shadow'
-      : 'text-neutral-300 hover:text-white'
-  }`}
->
-  SELL ITEM
-</button>
+                onClick={() => navigateTo("sell")}
+                className={`px-4 py-1.5 rounded-full transition-all ${
+                  currentRoute === "sell"
+                    ? "bg-white text-black font-bold shadow"
+                    : "text-neutral-300 hover:text-white"
+                }`}
+              >
+                SELL ITEM
+              </button>
               <button
                 onClick={() => navigateTo("services")}
                 className={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
@@ -271,7 +349,20 @@ function App() {
                 className="relative text-xs text-neutral-300 hover:text-white flex items-center gap-1 font-semibold transition px-2 py-1 rounded-full hover:bg-white/10"
                 title="Cart"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 8h14l1 13H4L5 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5 8h14l1 13H4L5 8Z" />
+                  <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+                </svg>
                 {cart.length > 0 && (
                   <span className="bg-white text-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                     {cart.reduce((a, b) => a + b.qty, 0)}
@@ -506,16 +597,12 @@ function App() {
           <CartFullView
             cart={cart}
             onRemove={(id) =>
-              setCart((prev) => prev.filter((i) => i.id !== id))
+              setCart((previousCart) =>
+                previousCart.filter((item) => item.id !== id),
+              )
             }
             onContinue={() => navigateTo("marketplace")}
-            onCheckout={() => {
-              confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
-              setCart([]);
-              showToast(
-                "🎉 Order Placed! In-Campus QR Pickup Token has been created.",
-              );
-            }}
+            onCheckout={handleCheckout}
           />
         )}
       </main>
@@ -920,13 +1007,15 @@ function App() {
               Safe Pickup Token
             </span>
             <h3 className="font-display text-xl font-bold text-neutral-900">
-              {qrModalItem.title}
+              Order #{qrModalItem.id}
             </h3>
-            <p className="text-xs text-neutral-500">
-              Show this QR code to <strong>{qrModalItem.seller.name}</strong> at{" "}
-              <em>{qrModalItem.pickupLocation}</em>.
+            <p>
+              Show this QR code at{" "}
+              <strong>
+                {qrModalItem.pickupLocation || "Campus Safe Desk"}
+              </strong>
+              .
             </p>
-
             <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-200 inline-block">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=CAMPUSCART-PICKUP-${qrModalItem.id}`}
