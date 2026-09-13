@@ -52,25 +52,40 @@ CAMPUSCART/
 
 ## 🚀 How to Run Locally
 
-You can run the project using **Make**, **NPM**, or **Python**:
+### 1. Frontend (Vite + React)
 
-### Option 1: Using Make (Recommended)
 ```bash
-make dev
+# Install dependencies (first time only)
+npm run install:frontend
+# or: cd frontend && npm install
+
+# Start Vite development server (with instant Hot Module Replacement)
+npm run dev
+# or: make dev
 # Launches http://localhost:3000
 ```
-Run `make help` to see all available commands (`make dev`, `make build`, `make preview`, `make clean`).
 
-### Option 2: Using NPM
+To create an optimized production build:
 ```bash
-npm run dev
-# or
-npm start
+npm run build
+# or: make build
 ```
 
-### Option 3: Using Python
+---
+
+### 2. Backend (FastAPI)
+
 ```bash
-python -m http.server 3000 --directory frontend
+# Navigate to backend directory
+cd backend
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Start the FastAPI server with auto-reload
+uvicorn app.main:app --reload
+# API runs on http://127.0.0.1:8000
+# Interactive docs at http://127.0.0.1:8000/docs
 ```
 
 ---
