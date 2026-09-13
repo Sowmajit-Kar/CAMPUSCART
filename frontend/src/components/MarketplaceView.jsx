@@ -7,7 +7,9 @@ function MarketplaceFullView({
   onOpenSeller,
   onStartChat,
   onOpenQr,
-  onSellItem
+  onSellItem,
+   onAddToWishlist,
+  wishlistItems = []
 
 }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,8 +68,9 @@ function MarketplaceFullView({
 
   if (selectedProduct) {
     const product = selectedProduct;
-    const isWishlisted = wishlist.includes(product.id);
-
+  const isWishlisted = wishlistItems.some(
+  item => item.id === product.id
+    );
     return (
       <section className="max-w-7xl mx-auto px-6 sm:px-12 pt-32 pb-20">
         <button
