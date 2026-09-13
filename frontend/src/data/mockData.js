@@ -1,5 +1,5 @@
 // Mock Database for CampusBuddy / CampusCart
-window.CAMPUS_DATA = {
+export const CAMPUS_DATA = {
   products: [
     {
       id: 1,
@@ -204,3 +204,6 @@ window.CAMPUS_DATA = {
     deskImage: "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=1000&auto=format&fit=crop&q=80"
   }
 };
+
+if (typeof window !== 'undefined') { window.CAMPUS_DATA = CAMPUS_DATA; }
+export default CAMPUS_DATA;

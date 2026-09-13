@@ -1,4 +1,4 @@
-const { useState } = React;
+import React, { useState } from 'react';
 
 function SellItemView({ onBack, onPublish }) {
   const [form, setForm] = useState({
@@ -85,24 +85,24 @@ function SellItemView({ onBack, onPublish }) {
   };
 
   return (
-    <section class="max-w-5xl mx-auto px-6 sm:px-12 pt-32 pb-20">
+    <section className="max-w-5xl mx-auto px-6 sm:px-12 pt-32 pb-20">
       <button
         onClick={onBack}
-        class="mb-8 text-sm font-bold text-neutral-500 hover:text-neutral-950 transition"
+        className="mb-8 text-sm font-bold text-neutral-500 hover:text-neutral-950 transition"
       >
         ← Back to Marketplace
       </button>
 
-      <div class="mb-8">
-        <p class="text-xs uppercase tracking-widest text-neutral-400 font-bold">
+      <div className="mb-8">
+        <p className="text-xs uppercase tracking-widest text-neutral-400 font-bold">
           CampusCart Seller Studio
         </p>
 
-        <h1 class="mt-2 text-4xl sm:text-5xl font-black font-display text-neutral-950">
+        <h1 className="mt-2 text-4xl sm:text-5xl font-black font-display text-neutral-950">
           Sell an Item
         </h1>
 
-        <p class="mt-3 text-sm text-neutral-500 max-w-2xl">
+        <p className="mt-3 text-sm text-neutral-500 max-w-2xl">
           Create a listing and make your unused or pre-owned items useful to
           another student.
         </p>
@@ -110,17 +110,17 @@ function SellItemView({ onBack, onPublish }) {
 
       <form
         onSubmit={handleSubmit}
-        class="rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8 space-y-7"
+        className="rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8 space-y-7"
       >
         {error && (
-          <div class="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm font-semibold">
+          <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm font-semibold">
             {error}
           </div>
         )}
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div class="md:col-span-2">
-            <label class="block text-sm font-bold text-neutral-800 mb-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-bold text-neutral-800 mb-2">
               Item title *
             </label>
 
@@ -128,20 +128,20 @@ function SellItemView({ onBack, onPublish }) {
               value={form.title}
               onChange={event => updateField('title', event.target.value)}
               placeholder="Example: Engineering Mathematics Book"
-              class="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
               required
             />
           </div>
 
           <div>
-            <label class="block text-sm font-bold text-neutral-800 mb-2">
+            <label className="block text-sm font-bold text-neutral-800 mb-2">
               Category *
             </label>
 
             <select
               value={form.category}
               onChange={event => updateField('category', event.target.value)}
-              class="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
             >
               <option>Notes & Material</option>
               <option>Tech & Accessories</option>
@@ -156,14 +156,14 @@ function SellItemView({ onBack, onPublish }) {
           </div>
 
           <div>
-            <label class="block text-sm font-bold text-neutral-800 mb-2">
+            <label className="block text-sm font-bold text-neutral-800 mb-2">
               Listing type *
             </label>
 
             <select
               value={form.mode}
               onChange={event => updateField('mode', event.target.value)}
-              class="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
             >
               <option value="BUY">Sell</option>
               <option value="RENT">Rent</option>
@@ -172,7 +172,7 @@ function SellItemView({ onBack, onPublish }) {
           </div>
 
           <div>
-            <label class="block text-sm font-bold text-neutral-800 mb-2">
+            <label className="block text-sm font-bold text-neutral-800 mb-2">
               Price *
             </label>
 
@@ -183,20 +183,20 @@ function SellItemView({ onBack, onPublish }) {
               value={form.price}
               onChange={event => updateField('price', event.target.value)}
               placeholder="Enter price"
-              class="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
               required
             />
           </div>
 
           <div>
-            <label class="block text-sm font-bold text-neutral-800 mb-2">
+            <label className="block text-sm font-bold text-neutral-800 mb-2">
               Condition *
             </label>
 
             <select
               value={form.condition}
               onChange={event => updateField('condition', event.target.value)}
-              class="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
             >
               <option>Brand New</option>
               <option>Like New</option>
@@ -207,8 +207,8 @@ function SellItemView({ onBack, onPublish }) {
           </div>
 
           {form.mode === 'RENT' && (
-            <div class="md:col-span-2">
-              <label class="block text-sm font-bold text-neutral-800 mb-2">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-neutral-800 mb-2">
                 Rental rate *
               </label>
 
@@ -218,14 +218,14 @@ function SellItemView({ onBack, onPublish }) {
                   updateField('rentalRate', event.target.value)
                 }
                 placeholder="Example: ₹50 per day"
-                class="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
+                className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
               />
             </div>
           )}
 
           {form.mode === 'EXCHANGE' && (
-            <div class="md:col-span-2">
-              <label class="block text-sm font-bold text-neutral-800 mb-2">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-neutral-800 mb-2">
                 What do you want in exchange? *
               </label>
 
@@ -235,13 +235,13 @@ function SellItemView({ onBack, onPublish }) {
                   updateField('exchangeWish', event.target.value)
                 }
                 placeholder="Example: Looking for a scientific calculator"
-                class="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
+                className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
               />
             </div>
           )}
 
-          <div class="md:col-span-2">
-            <label class="block text-sm font-bold text-neutral-800 mb-2">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-bold text-neutral-800 mb-2">
               Description *
             </label>
 
@@ -252,13 +252,13 @@ function SellItemView({ onBack, onPublish }) {
               }
               placeholder="Describe the item, its condition, and any important details..."
               rows="5"
-              class="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
               required
             />
           </div>
 
           <div>
-            <label class="block text-sm font-bold text-neutral-800 mb-2">
+            <label className="block text-sm font-bold text-neutral-800 mb-2">
               Pickup location *
             </label>
 
@@ -268,13 +268,13 @@ function SellItemView({ onBack, onPublish }) {
                 updateField('pickupLocation', event.target.value)
               }
               placeholder="Example: Main Library Entrance"
-              class="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
               required
             />
           </div>
 
           <div>
-            <label class="block text-sm font-bold text-neutral-800 mb-2">
+            <label className="block text-sm font-bold text-neutral-800 mb-2">
               Image URL
             </label>
 
@@ -283,29 +283,29 @@ function SellItemView({ onBack, onPublish }) {
               value={form.image}
               onChange={event => updateField('image', event.target.value)}
               placeholder="https://example.com/item-image.jpg"
-              class="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-950"
             />
           </div>
         </div>
 
-        <div class="rounded-2xl bg-neutral-50 border border-neutral-200 p-4 text-sm text-neutral-600">
-          <strong class="text-neutral-950">Prototype notice:</strong> This
+        <div className="rounded-2xl bg-neutral-50 border border-neutral-200 p-4 text-sm text-neutral-600">
+          <strong className="text-neutral-950">Prototype notice:</strong> This
           listing is currently stored only in the browser session. It will be
           saved permanently after we connect the FastAPI backend and database.
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             type="button"
             onClick={onBack}
-            class="flex-1 rounded-xl border border-neutral-200 py-3 px-5 font-bold text-neutral-700 hover:bg-neutral-100 transition"
+            className="flex-1 rounded-xl border border-neutral-200 py-3 px-5 font-bold text-neutral-700 hover:bg-neutral-100 transition"
           >
             Cancel
           </button>
 
           <button
             type="submit"
-            class="flex-1 rounded-xl bg-neutral-950 text-white py-3 px-5 font-bold hover:bg-neutral-800 transition"
+            className="flex-1 rounded-xl bg-neutral-950 text-white py-3 px-5 font-bold hover:bg-neutral-800 transition"
           >
             Publish Listing
           </button>
@@ -315,4 +315,4 @@ function SellItemView({ onBack, onPublish }) {
   );
 }
 
-window.SellItemView = SellItemView;
+export default SellItemView;

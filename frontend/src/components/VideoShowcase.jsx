@@ -1,6 +1,6 @@
-const { useState, useEffect, useMemo, useRef } = React;
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 
-    function CampusCartVideoShowcase({ onOpenLogin }) {
+function CampusCartVideoShowcase({ onOpenLogin }) {
       const canvasRef = useRef(null);
       const containerRef = useRef(null);
       const animFrameRef = useRef(null);
@@ -636,27 +636,27 @@ const { useState, useEffect, useMemo, useRef } = React;
       };
 
       return (
-        <div ref={containerRef} class="relative rounded-3xl overflow-hidden border border-neutral-800 shadow-2xl bg-[#060911] group">
+        <div ref={containerRef} className="relative rounded-3xl overflow-hidden border border-neutral-800 shadow-2xl bg-[#060911] group">
           
           {/* Canvas Rendering Stage (16:9) */}
-          <div class="relative w-full aspect-[16/9] cursor-pointer" onClick={togglePlay}>
+          <div className="relative w-full aspect-[16/9] cursor-pointer" onClick={togglePlay}>
             <canvas 
               ref={canvasRef} 
               width={1280} 
               height={720} 
-              class="w-full h-full object-cover block"
+              className="w-full h-full object-cover block"
             />
 
             {/* Top Overlay Badge */}
-            <div class="absolute top-6 left-6 flex items-center gap-2 bg-neutral-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 text-xs font-mono text-white pointer-events-none">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-              <span class="font-bold">CampusCart Dynamic Showcase • Native Generated Reel</span>
+            <div className="absolute top-6 left-6 flex items-center gap-2 bg-neutral-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 text-xs font-mono text-white pointer-events-none">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span className="font-bold">CampusCart Dynamic Showcase • Native Generated Reel</span>
             </div>
 
             {/* Center Pause Indicator (Shows when paused) */}
             {!isPlaying && (
-              <div class="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
-                <div class="w-20 h-20 rounded-full bg-white/90 text-neutral-950 flex items-center justify-center shadow-2xl scale-110 transition-transform">
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                <div className="w-20 h-20 rounded-full bg-white/90 text-neutral-950 flex items-center justify-center shadow-2xl scale-110 transition-transform">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                     <polygon points="6 4 20 12 6 20 6 4"></polygon>
                   </svg>
@@ -666,34 +666,34 @@ const { useState, useEffect, useMemo, useRef } = React;
           </div>
 
           {/* Video Control Bar */}
-          <div class="bg-neutral-950/95 border-t border-neutral-800/80 p-4 sm:p-5 space-y-3">
+          <div className="bg-neutral-950/95 border-t border-neutral-800/80 p-4 sm:p-5 space-y-3">
             
             {/* Timeline Scrubber */}
             <div 
               onClick={handleScrubberClick}
-              class="relative h-2.5 w-full bg-neutral-800/90 rounded-full cursor-pointer overflow-hidden group/scrub"
+              className="relative h-2.5 w-full bg-neutral-800/90 rounded-full cursor-pointer overflow-hidden group/scrub"
               title="Click or drag to scrub"
             >
               {/* Active Progress Fill */}
               <div 
-                class="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-emerald-400 via-sky-400 to-indigo-400 transition-all duration-75"
+                className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-emerald-400 via-sky-400 to-indigo-400 transition-all duration-75"
                 style={{ width: `${(currentTime / TOTAL_DURATION) * 100}%` }}
               ></div>
 
               {/* Chapter markers on scrubber */}
-              <div class="absolute top-0 bottom-0 left-[25%] w-0.5 bg-white/30 pointer-events-none"></div>
-              <div class="absolute top-0 bottom-0 left-[50%] w-0.5 bg-white/30 pointer-events-none"></div>
-              <div class="absolute top-0 bottom-0 left-[75%] w-0.5 bg-white/30 pointer-events-none"></div>
+              <div className="absolute top-0 bottom-0 left-[25%] w-0.5 bg-white/30 pointer-events-none"></div>
+              <div className="absolute top-0 bottom-0 left-[50%] w-0.5 bg-white/30 pointer-events-none"></div>
+              <div className="absolute top-0 bottom-0 left-[75%] w-0.5 bg-white/30 pointer-events-none"></div>
             </div>
 
             {/* Bottom Controls Row */}
-            <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
               
               {/* Play/Pause & Time */}
-              <div class="flex items-center gap-3">
+              <div className="flex items-center gap-3">
                 <button 
                   onClick={togglePlay}
-                  class="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
                   title={isPlaying ? "Pause" : "Play"}
                 >
                   {isPlaying ? (
@@ -708,15 +708,15 @@ const { useState, useEffect, useMemo, useRef } = React;
                   )}
                 </button>
 
-                <div class="font-mono text-neutral-300 font-semibold">
-                  <span class="text-white">{formatTime(currentTime)}</span>
-                  <span class="text-neutral-500"> / {formatTime(TOTAL_DURATION)}</span>
+                <div className="font-mono text-neutral-300 font-semibold">
+                  <span className="text-white">{formatTime(currentTime)}</span>
+                  <span className="text-neutral-500"> / {formatTime(TOTAL_DURATION)}</span>
                 </div>
 
                 {/* Sound Toggle */}
                 <button 
                   onClick={toggleMute}
-                  class="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer flex items-center gap-1"
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer flex items-center gap-1"
                   title={isMuted ? "Unmute Ambient Sound" : "Mute Sound"}
                 >
                   {isMuted ? (
@@ -731,17 +731,17 @@ const { useState, useEffect, useMemo, useRef } = React;
                       <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
                     </svg>
                   )}
-                  <span class="text-[10px] text-neutral-400 hidden sm:inline">{isMuted ? 'Muted' : 'Audio On'}</span>
+                  <span className="text-[10px] text-neutral-400 hidden sm:inline">{isMuted ? 'Muted' : 'Audio On'}</span>
                 </button>
               </div>
 
               {/* Chapter Jump Buttons */}
-              <div class="flex flex-wrap items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {chapters.map((ch, idx) => (
                   <button
                     key={idx}
                     onClick={() => seekTo(ch.start)}
-                    class={`px-2.5 py-1 rounded-lg font-mono text-[11px] transition cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg font-mono text-[11px] transition cursor-pointer ${
                       activeChapterIdx === idx 
                         ? 'bg-white text-black font-bold shadow' 
                         : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
@@ -753,10 +753,10 @@ const { useState, useEffect, useMemo, useRef } = React;
               </div>
 
               {/* Speed & Video Export & Fullscreen */}
-              <div class="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <button 
                   onClick={() => setPlaybackSpeed(s => s === 1 ? 1.5 : (s === 1.5 ? 2 : 1))}
-                  class="px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 font-mono text-[11px] transition cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 font-mono text-[11px] transition cursor-pointer"
                   title="Playback Speed"
                 >
                   {playbackSpeed}x
@@ -765,7 +765,7 @@ const { useState, useEffect, useMemo, useRef } = React;
                 {/* Export / Download Video Button */}
                 <button 
                   onClick={exportVideoReel}
-                  class="px-3 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-mono text-[11px] transition flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-mono text-[11px] transition flex items-center gap-1.5 cursor-pointer"
                   title="Download Video File (.webm)"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -778,7 +778,7 @@ const { useState, useEffect, useMemo, useRef } = React;
 
                 <button 
                   onClick={toggleFullscreen}
-                  class="p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 transition cursor-pointer"
+                  className="p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 transition cursor-pointer"
                   title="Toggle Fullscreen"
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -793,4 +793,4 @@ const { useState, useEffect, useMemo, useRef } = React;
       );
     }
 
-window.CampusCartVideoShowcase = CampusCartVideoShowcase;
+export default CampusCartVideoShowcase;

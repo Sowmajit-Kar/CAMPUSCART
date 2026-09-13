@@ -1,44 +1,46 @@
 # =============================================================================
 # CampusCart — Makefile
-# Task automation for local development, serving, and Git operations
+# Task automation for local development, building, and Git operations
 # =============================================================================
 
-.PHONY: help dev serve install clean git-prep git-init
+.PHONY: help dev build preview install clean git-prep
 
 # Default target
 help:
 	@echo ================================================================
-	@echo CampusCart Developer CLI Commands
+	@echo CampusCart Developer CLI Commands (Vite + React)
 	@echo ================================================================
-	@echo   make dev       : Launch local frontend server on http://localhost:3000
-	@echo   make serve     : Serve frontend via Python HTTP server
-	@echo   make git-init  : Initialize local Git repository with main branch
+	@echo   make dev       : Launch Vite HMR dev server (http://localhost:3000)
+	@echo   make build     : Build production-ready bundle with Vite
+	@echo   make preview   : Preview the production build locally
+	@echo   make install   : Install frontend npm dependencies
 	@echo   make git-prep  : Inspect git staging and verify .gitignore status
 	@echo   make clean     : Remove temporary cache and log files
 	@echo ================================================================
 
-# Start dev server (serves frontend folder at port 3000)
+# Start Vite dev server
 dev:
-	@echo Starting CampusCart frontend server on http://localhost:3000...
-	python -m http.server 3000 --directory frontend
+	npm --prefix frontend run dev
 
-# Alternative serve command
-serve:
-	python -m http.server 3000 --directory frontend
+# Build production bundle
+build:
+	npm --prefix frontend run build
 
-# Initialize Git repository
-git-init:
-	git init -b main
-	@echo Git repository initialized on branch 'main'.
+# Preview production build
+preview:
+	npm --prefix frontend run preview
 
-# Check git status and ensure large videos are excluded
+# Install dependencies
+install:
+	npm --prefix frontend install
+
+# Check git status
 git-prep:
-	@echo Checking Git status...
 	git status
 
 # Clean temporary files
 clean:
-	@echo Cleaning cache and log files...
-	-del /q /s *.log 2>nul
-	-rmdir /s /q .cache 2>nul
+	@echo Cleaning cache and build files...
+	-rmdir /s /q frontend\dist 2>nul
+	-rmdir /s /q frontend\node_modules\.vite 2>nul
 	@echo Clean complete.

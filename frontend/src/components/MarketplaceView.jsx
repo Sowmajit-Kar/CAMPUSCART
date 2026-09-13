@@ -1,4 +1,5 @@
-const { useState, useMemo } = React;
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { CAMPUS_DATA } from '../data/mockData';
 
 function MarketplaceFullView({
   extraProducts = [],
@@ -71,57 +72,57 @@ function MarketplaceFullView({
   item => item.id === product.id
     );
     return (
-      <section class="max-w-7xl mx-auto px-6 sm:px-12 pt-32 pb-20">
+      <section className="max-w-7xl mx-auto px-6 sm:px-12 pt-32 pb-20">
         <button
           onClick={() => setSelectedProduct(null)}
-          class="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-neutral-500 hover:text-neutral-950 transition"
+          className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-neutral-500 hover:text-neutral-950 transition"
         >
           ← Back to Marketplace
         </button>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           {/* Product image */}
-          <div class="space-y-4">
-            <div class="aspect-[4/3] overflow-hidden rounded-3xl bg-neutral-100 border border-neutral-200">
+          <div className="space-y-4">
+            <div className="aspect-[4/3] overflow-hidden rounded-3xl bg-neutral-100 border border-neutral-200">
               <img
                 src={product.image}
                 alt={product.title}
-                class="w-full h-full object-cover"
+                className="w-full h-full object-cover"
               />
             </div>
 
-            <div class="flex flex-wrap gap-2">
-              <span class="px-3 py-1 rounded-full bg-neutral-950 text-white text-xs font-bold">
+            <div className="flex flex-wrap gap-2">
+              <span className="px-3 py-1 rounded-full bg-neutral-950 text-white text-xs font-bold">
                 {product.mode}
               </span>
 
-              <span class="px-3 py-1 rounded-full bg-neutral-100 text-neutral-700 text-xs font-semibold">
+              <span className="px-3 py-1 rounded-full bg-neutral-100 text-neutral-700 text-xs font-semibold">
                 {product.category}
               </span>
 
-              <span class="px-3 py-1 rounded-full bg-neutral-100 text-neutral-700 text-xs font-semibold">
+              <span className="px-3 py-1 rounded-full bg-neutral-100 text-neutral-700 text-xs font-semibold">
                 {product.condition}
               </span>
             </div>
           </div>
 
           {/* Product information */}
-          <div class="space-y-6">
+          <div className="space-y-6">
             <div>
-              <div class="flex items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p class="text-xs uppercase tracking-widest text-neutral-400 font-bold">
+                  <p className="text-xs uppercase tracking-widest text-neutral-400 font-bold">
                     CampusCart Listing
                   </p>
 
-                  <h1 class="mt-2 text-4xl font-black font-display text-neutral-950">
+                  <h1 className="mt-2 text-4xl font-black font-display text-neutral-950">
                     {product.title}
                   </h1>
                 </div>
 
                 <button
-                 onClick={() => onAddToWishlist(product)}
-                  class={`w-11 h-11 rounded-full border flex items-center justify-center text-xl transition ${
+                  onClick={() => toggleWishlist(product.id)}
+                  className={`w-11 h-11 rounded-full border flex items-center justify-center text-xl transition ${
                     isWishlisted
                       ? 'bg-red-50 border-red-200 text-red-500'
                       : 'bg-white border-neutral-200 text-neutral-500 hover:bg-neutral-100'
@@ -132,89 +133,89 @@ function MarketplaceFullView({
                 </button>
               </div>
 
-              <div class="mt-5 flex items-end gap-3">
-                <span class="text-4xl font-black font-display text-neutral-950">
+              <div className="mt-5 flex items-end gap-3">
+                <span className="text-4xl font-black font-display text-neutral-950">
                   ₹{Number(product.price).toFixed(2)}
                 </span>
 
                 {product.originalPrice && (
-                  <span class="text-lg text-neutral-400 line-through">
+                  <span className="text-lg text-neutral-400 line-through">
                     ₹{Number(product.originalPrice).toFixed(2)}
                   </span>
                 )}
               </div>
 
               {product.rentalRate && (
-                <p class="mt-2 text-sm font-semibold text-emerald-700">
+                <p className="mt-2 text-sm font-semibold text-emerald-700">
                   Rental rate: {product.rentalRate}
                 </p>
               )}
             </div>
 
-            <div class="border-t border-b border-neutral-200 py-5">
-              <h2 class="text-sm font-bold uppercase tracking-widest text-neutral-400">
+            <div className="border-t border-b border-neutral-200 py-5">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-neutral-400">
                 Description
               </h2>
 
-              <p class="mt-3 text-neutral-600 leading-relaxed">
+              <p className="mt-3 text-neutral-600 leading-relaxed">
                 {product.description}
               </p>
             </div>
 
             {product.exchangeWish && (
-              <div class="rounded-2xl bg-amber-50 border border-amber-200 p-4">
-                <p class="text-xs uppercase tracking-widest font-bold text-amber-700">
+              <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4">
+                <p className="text-xs uppercase tracking-widest font-bold text-amber-700">
                   Exchange Preference
                 </p>
 
-                <p class="mt-2 text-sm text-amber-900">
+                <p className="mt-2 text-sm text-amber-900">
                   {product.exchangeWish}
                 </p>
               </div>
             )}
 
-            <div class="rounded-2xl bg-neutral-50 border border-neutral-200 p-5">
-              <div class="flex items-center justify-between gap-4">
+            <div className="rounded-2xl bg-neutral-50 border border-neutral-200 p-5">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p class="text-xs uppercase tracking-widest text-neutral-400 font-bold">
+                  <p className="text-xs uppercase tracking-widest text-neutral-400 font-bold">
                     Safe Pickup Location
                   </p>
 
-                  <p class="mt-2 text-sm font-semibold text-neutral-900">
+                  <p className="mt-2 text-sm font-semibold text-neutral-900">
                     📍 {product.pickupLocation}
                   </p>
                 </div>
 
-                <span class="text-emerald-600 text-xl">✓</span>
+                <span className="text-emerald-600 text-xl">✓</span>
               </div>
             </div>
 
             {/* Main actions */}
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 onClick={() => onAddToCart(product)}
-                class="rounded-xl bg-neutral-950 text-white py-3 px-5 font-bold hover:bg-neutral-800 transition"
+                className="rounded-xl bg-neutral-950 text-white py-3 px-5 font-bold hover:bg-neutral-800 transition"
               >
                 {getActionLabel(product.mode)}
               </button>
 
               <button
                 onClick={() => onStartChat(product.seller, product)}
-                class="rounded-xl bg-neutral-100 text-neutral-900 py-3 px-5 font-bold hover:bg-neutral-200 transition"
+                className="rounded-xl bg-neutral-100 text-neutral-900 py-3 px-5 font-bold hover:bg-neutral-200 transition"
               >
                 Chat with Seller
               </button>
 
               <button
                 onClick={() => onOpenQr(product)}
-                class="rounded-xl bg-emerald-600 text-white py-3 px-5 font-bold hover:bg-emerald-700 transition"
+                className="rounded-xl bg-emerald-600 text-white py-3 px-5 font-bold hover:bg-emerald-700 transition"
               >
                 Generate QR Token
               </button>
 
               <button
                 onClick={() => onOpenSeller(product.seller)}
-                class="rounded-xl border border-neutral-200 bg-white text-neutral-900 py-3 px-5 font-bold hover:bg-neutral-100 transition"
+                className="rounded-xl border border-neutral-200 bg-white text-neutral-900 py-3 px-5 font-bold hover:bg-neutral-100 transition"
               >
                 View Seller Profile
               </button>
@@ -223,44 +224,44 @@ function MarketplaceFullView({
         </div>
 
         {/* Seller information */}
-        <div class="mt-12 rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-            <div class="flex items-center gap-4">
+        <div className="mt-12 rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+            <div className="flex items-center gap-4">
               <img
                 src={product.seller.avatar}
                 alt={product.seller.name}
-                class="w-16 h-16 rounded-full object-cover border border-neutral-200"
+                className="w-16 h-16 rounded-full object-cover border border-neutral-200"
               />
 
               <div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <h2 class="text-xl font-bold text-neutral-950">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-xl font-bold text-neutral-950">
                     {product.seller.name}
                   </h2>
 
                   {product.seller.verified && (
-                    <span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
+                    <span className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
                       ✓ Verified
                     </span>
                   )}
                 </div>
 
-                <p class="text-sm text-neutral-500">
+                <p className="text-sm text-neutral-500">
                   {product.seller.department}
                 </p>
 
-                <p class="mt-1 text-sm text-neutral-700">
+                <p className="mt-1 text-sm text-neutral-700">
                   ⭐ {product.seller.rating} rating · {product.seller.reviews} reviews
                 </p>
               </div>
             </div>
 
-            <div class="text-left sm:text-right">
-              <p class="text-xs uppercase tracking-widest text-neutral-400 font-bold">
+            <div className="text-left sm:text-right">
+              <p className="text-xs uppercase tracking-widest text-neutral-400 font-bold">
                 Trust Score
               </p>
 
-              <p class="mt-1 text-3xl font-black text-emerald-600">
+              <p className="mt-1 text-3xl font-black text-emerald-600">
                 {product.seller.trustScore}%
               </p>
             </div>
@@ -271,32 +272,32 @@ function MarketplaceFullView({
   }
 
   return (
-    <section class="max-w-7xl mx-auto px-6 sm:px-12 pt-32 pb-20 space-y-8">
+    <section className="max-w-7xl mx-auto px-6 sm:px-12 pt-32 pb-20 space-y-8">
       {/* Header */}
-      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b border-neutral-200 pb-6">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b border-neutral-200 pb-6">
         <div>
-          <span class="text-xs font-mono text-neutral-400 uppercase tracking-widest">
+          <span className="text-xs font-mono text-neutral-400 uppercase tracking-widest">
             VERIFIED STUDENT INVENTORY
           </span>
 
-          <h1 class="font-display text-4xl sm:text-5xl font-black text-neutral-950 mt-2">
+          <h1 className="font-display text-4xl sm:text-5xl font-black text-neutral-950 mt-2">
             Student Marketplace
           </h1>
 
-          <p class="mt-3 text-sm text-neutral-500 max-w-xl">
+          <p className="mt-3 text-sm text-neutral-500 max-w-xl">
             Buy, rent, exchange, and discover useful items from students around
             your campus.
           </p>
         </div>
 
-        <div class="text-sm text-neutral-500">
-          <strong class="text-neutral-950">{filteredProducts.length}</strong>{' '}
+        <div className="text-sm text-neutral-500">
+          <strong className="text-neutral-950">{filteredProducts.length}</strong>{' '}
           listings found
         </div>
 
         <button
   onClick={onSellItem}
-  class="rounded-xl bg-neutral-950 text-white px-5 py-3 text-sm font-bold hover:bg-neutral-800 transition"
+  className="rounded-xl bg-neutral-950 text-white px-5 py-3 text-sm font-bold hover:bg-neutral-800 transition"
 >
   + Sell an Item
 </button>
@@ -305,19 +306,19 @@ function MarketplaceFullView({
       </div>
 
       {/* Search and filters */}
-      <div class="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4">
         <input
           type="text"
           value={searchQuery}
           onChange={event => setSearchQuery(event.target.value)}
           placeholder="Search books, calculators, electronics, bags..."
-          class="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
+          className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
         />
 
         <select
           value={selectedCategory}
           onChange={event => setSelectedCategory(event.target.value)}
-          class="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
+          className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
         >
           {categories.map(category => (
             <option key={category} value={category}>
@@ -327,12 +328,12 @@ function MarketplaceFullView({
         </select>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {['ALL', 'BUY', 'RENT', 'EXCHANGE'].map(mode => (
           <button
             key={mode}
             onClick={() => setSelectedMode(mode)}
-            class={`px-4 py-2 rounded-full text-xs font-bold transition ${
+            className={`px-4 py-2 rounded-full text-xs font-bold transition ${
               selectedMode === mode
                 ? 'bg-neutral-950 text-white'
                 : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
@@ -355,7 +356,7 @@ function MarketplaceFullView({
               setSelectedCategory('ALL');
               setSelectedMode('ALL');
             }}
-            class="ml-2 px-4 py-2 rounded-full text-xs font-bold border border-neutral-200 text-neutral-600 hover:bg-neutral-100"
+            className="ml-2 px-4 py-2 rounded-full text-xs font-bold border border-neutral-200 text-neutral-600 hover:bg-neutral-100"
           >
             Clear Filters
           </button>
@@ -364,107 +365,107 @@ function MarketplaceFullView({
 
       {/* Product grid */}
       {filteredProducts.length === 0 ? (
-        <div class="py-20 text-center rounded-3xl border border-dashed border-neutral-300">
-          <div class="text-4xl">🔎</div>
+        <div className="py-20 text-center rounded-3xl border border-dashed border-neutral-300">
+          <div className="text-4xl">🔎</div>
 
-          <h2 class="mt-4 text-xl font-bold text-neutral-950">
+          <h2 className="mt-4 text-xl font-bold text-neutral-950">
             No listings found
           </h2>
 
-          <p class="mt-2 text-sm text-neutral-500">
+          <p className="mt-2 text-sm text-neutral-500">
             Try changing your search or selecting another category.
           </p>
         </div>
       ) : (
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
           {filteredProducts.map(product => {
             const isWishlisted = wishlist.includes(product.id);
 
             return (
               <article
                 key={product.id}
-                class="bg-white rounded-3xl overflow-hidden border border-neutral-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
+                className="bg-white rounded-3xl overflow-hidden border border-neutral-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
               >
                 <button
                   onClick={() => setSelectedProduct(product)}
-                  class="aspect-[4/3] bg-neutral-100 overflow-hidden relative text-left"
+                  className="aspect-[4/3] bg-neutral-100 overflow-hidden relative text-left"
                 >
                   <img
                     src={product.image}
                     alt={product.title}
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
 
-                  <span class="absolute top-3 left-3 bg-neutral-950/85 text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase">
+                  <span className="absolute top-3 left-3 bg-neutral-950/85 text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase">
                     {product.mode}
                   </span>
 
-                  <span class="absolute bottom-3 left-3 bg-white/90 text-neutral-900 text-[10px] font-bold px-3 py-1.5 rounded-full">
+                  <span className="absolute bottom-3 left-3 bg-white/90 text-neutral-900 text-[10px] font-bold px-3 py-1.5 rounded-full">
                     {product.category}
                   </span>
                 </button>
 
-                <div class="p-5 flex-1 flex flex-col">
-                  <div class="flex items-start justify-between gap-3">
+                <div className="p-5 flex-1 flex flex-col">
+                  <div className="flex items-start justify-between gap-3">
                     <button
                       onClick={() => setSelectedProduct(product)}
-                      class="text-left"
+                      className="text-left"
                     >
-                      <h3 class="font-display font-bold text-xl text-neutral-950 hover:underline">
+                      <h3 className="font-display font-bold text-xl text-neutral-950 hover:underline">
                         {product.title}
                       </h3>
                     </button>
 
                     <button
-                      onClick={() => onAddToWishlist(product)}
-                      class="text-2xl text-neutral-500 hover:text-red-500 transition"
+                      onClick={() => toggleWishlist(product.id)}
+                      className="text-2xl text-neutral-500 hover:text-red-500 transition"
                       aria-label="Toggle wishlist"
                     >
                       {isWishlisted ? '♥' : '♡'}
                     </button>
                   </div>
 
-                  <div class="mt-2 flex items-baseline gap-2">
-                    <span class="font-display font-black text-2xl text-neutral-950">
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="font-display font-black text-2xl text-neutral-950">
                       ₹{Number(product.price).toFixed(2)}
                     </span>
 
                     {product.originalPrice && (
-                      <span class="text-xs text-neutral-400 line-through">
+                      <span className="text-xs text-neutral-400 line-through">
                         ₹{Number(product.originalPrice).toFixed(2)}
                       </span>
                     )}
                   </div>
 
-                  <p class="mt-3 text-sm text-neutral-500 line-clamp-3">
+                  <p className="mt-3 text-sm text-neutral-500 line-clamp-3">
                     {product.description}
                   </p>
 
-                  <div class="mt-4 flex items-center justify-between gap-3 text-xs">
-                    <span class="text-neutral-500">
+                  <div className="mt-4 flex items-center justify-between gap-3 text-xs">
+                    <span className="text-neutral-500">
                       {product.condition}
                     </span>
 
-                    <span class="font-bold text-emerald-600">
+                    <span className="font-bold text-emerald-600">
                       Trust {product.seller.trustScore}%
                     </span>
                   </div>
 
-                  <div class="mt-4 text-xs text-neutral-500">
+                  <div className="mt-4 text-xs text-neutral-500">
                     📍 {product.pickupLocation}
                   </div>
 
-                  <div class="mt-5 pt-4 border-t border-neutral-100 grid grid-cols-2 gap-2">
+                  <div className="mt-5 pt-4 border-t border-neutral-100 grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setSelectedProduct(product)}
-                      class="py-2.5 rounded-xl bg-neutral-950 text-white text-xs font-bold hover:bg-neutral-800 transition"
+                      className="py-2.5 rounded-xl bg-neutral-950 text-white text-xs font-bold hover:bg-neutral-800 transition"
                     >
                       View Details
                     </button>
 
                     <button
                       onClick={() => onStartChat(product.seller, product)}
-                      class="py-2.5 rounded-xl bg-neutral-100 text-neutral-800 text-xs font-bold hover:bg-neutral-200 transition"
+                      className="py-2.5 rounded-xl bg-neutral-100 text-neutral-800 text-xs font-bold hover:bg-neutral-200 transition"
                     >
                       Chat
                     </button>
@@ -479,4 +480,4 @@ function MarketplaceFullView({
   );
 }
 
-window.MarketplaceFullView = MarketplaceFullView;
+export default MarketplaceFullView;

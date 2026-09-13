@@ -1,89 +1,97 @@
+<img width="1500" height="350" alt="image" src="https://github.com/user-attachments/assets/032f9923-3dcb-49eb-8381-fd6a98819bb3" />
+
 # 🎓 CampusCart — Next-Gen Student Marketplace 
 
 CampusCart is a college marketplace and peer skill exchange platform built with modern web aesthetics (Genesis-inspired design language, glassmorphism, procedural canvas reels, and cryptographic QR pickups).
 
 ---
 
+
 ## 📁 Repository Structure
 
-The project is structured with a modular frontend architecture prepared for standalone use and future backend API integration:
+The project is structured with a modular architecture prepared for standalone use and backend API integration:
 
 ```text
 CAMPUSCART/
 ├── .gitignore                    # Excludes heavy video binaries, node_modules, temp files
-├── Makefile                      # Make commands for local dev, serving, and git operations
-├── package.json                  # Root npm scripts
+├── LICENSE                       # Project license
+├── Makefile                      # Make commands for local dev, build, and tasks
+├── package.json                  # Root npm orchestrator scripts
 ├── README.md                     # Documentation & git guide
 ├── index.html                    # Root entry point with instant redirect to frontend
-└── frontend/                     # Modular Frontend Application
-    ├── index.html                # Clean HTML entry point
-    ├── package.json              # Frontend scripts
-    ├── css/
-    │   └── style.css             # Typography, watermarks, glassmorphism, animations
-    └── js/
+├── backend/                      # Backend API service
+│   ├── requirements.txt          # Python dependencies
+│   └── app/                      # Application source code
+│       ├── main.py               # API entry point
+│       └── core/                 # Core backend configurations
+└── frontend/                     # Modern Vite + React Application
+    ├── index.html                # Vite HTML module entry point
+    ├── package.json              # Frontend scripts & dependencies
+    ├── vite.config.js            # Vite build configuration
+    ├── tailwind.config.js        # Tailwind styling & theme
+    ├── postcss.config.js         # PostCSS pipeline
+    └── src/
+        ├── main.jsx              # React 18 createRoot mount point
+        ├── App.jsx               # Core application state, modals & routing
+        ├── index.css             # Tailwind directives + watermarks & keyframes
         ├── data/
-        │   └── mockData.js       # Campus marketplace mock database
-        ├── components/
-        │   ├── VideoShowcase.js          # Procedural 60fps canvas motion reel
-        │   ├── CircularWheelShowcase.js  # Interactive category rotating wheel
-        │   ├── OverviewGatewayView.js    # Pre-login Genesis hero & comparison
-        │   ├── HomrPageIdeaView.js       # Post-login marketplace dashboard
-        │   ├── MarketplaceView.js        # Catalog grid & search filter
-        │   ├── ServicesView.js           # Student tutoring & gigs
-        │   ├── CourseView.js             # Course materials exchange
-        │   └── CartView.js               # Shopping cart & QR token generator
-        └── app.js                # Core App state, modals, and React mounting
+        │   └── mockData.js       # Campus marketplace database
+        └── components/           # Modular React JSX Components
+            ├── VideoShowcase.jsx         # Procedural 60fps canvas motion reel
+            ├── CircularWheelShowcase.jsx # Interactive category rotating wheel
+            ├── OverviewGatewayView.jsx   # Pre-login Genesis hero & comparison
+            ├── HomrPageIdeaView.jsx      # Post-login marketplace dashboard
+            ├── MarketplaceView.jsx       # Product catalog grid & search filter
+            ├── SellItemView.jsx          # Listing creation & publish form
+            ├── ServicesView.jsx          # Student tutoring & peer gigs
+            ├── CourseView.jsx            # Course materials exchange
+            └── CartView.jsx              # Shopping cart & QR token generator
 ```
 
----
 
-## 🌟 Key Features Adapted from `HomrPageIdea.mp4`
-
-1. **Floating Island Pill Navigation**:
-   - Centered floating glassmorphism pill with geometric logo, navigation tabs (`HOME`, `MARKETPLACE`, `SKILLS`, `COURSES`), cart badge, and hamburger drawer.
-2. **Hero Section with Giant Watermark Typography**:
-   - Massive translucent typography watermark in the background (`CAMPUSCART`).
-   - Clean stat callout: `25k+ Active Students`.
-   - Bold sans-serif/grotesk headline with pill CTA buttons.
-3. **Interactive Procedural Showcase Reel**:
-   - Canvas-driven 60fps interactive video showcasing identity verification, item scanning, and QR pickups with real-time controls.
-4. **Step-by-Step Roadmap & Accordion**:
-   - Structured milestones and interactive expandable FAQ accordion.
-5. **Connected Student Commerce**:
-   - In-campus buyer-seller simulated live chat.
-   - `@campus.edu` student authentication modal.
-   - Safe QR pickup token generator with confetti celebration.
-
----
 
 ## 🚀 How to Run Locally
 
-You can run the project using **Make**, **NPM**, or **Python**:
+### 1. Frontend (Vite + React)
 
-### Option 1: Using Make (Recommended)
 ```bash
-make dev
+# Install dependencies (first time only)
+npm run install:frontend
+# or: cd frontend && npm install
+
+# Start Vite development server (with instant Hot Module Replacement)
+npm run dev
+# or: make dev
 # Launches http://localhost:3000
 ```
-Run `make help` to see all available commands (`make serve`, `make clean`, `make git-prep`).
 
-### Option 2: Using NPM
+To create an optimized production build:
 ```bash
-npm run dev
-# or
-npm start
+npm run build
+# or: make build
 ```
 
-### Option 3: Using Python
+---
+
+### 2. Backend (FastAPI)
+
 ```bash
-python -m http.server 3000 --directory frontend
+# Navigate to backend directory
+cd backend
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Start the FastAPI server with auto-reload
+uvicorn app.main:app --reload
+# API runs on http://127.0.0.1:8000
+# Interactive docs at http://127.0.0.1:8000/docs
 ```
 
 ---
 
 ## 📦 Initial Git Push Instructions
 
-The repository has been initialized with a comprehensive [`.gitignore`](file:///d:/CAMPUSCART/.gitignore) that automatically excludes heavy video screen recordings (`*.mp4`) to keep your remote repository lightweight and fast.
 
 To push this codebase to your remote GitHub or GitLab repository:
 
