@@ -47,7 +47,7 @@ function CartFullView({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10">
           <div className="space-y-5">
             <div className="rounded-3xl border border-neutral-200 bg-white overflow-hidden">
               <div className="px-5 py-4 border-b border-neutral-200">
@@ -60,40 +60,76 @@ function CartFullView({
                 </p>
               </div>
 
-              <div className="divide-y divide-neutral-200">
+              <div className="divide-y divide-neutral-200 flex flex-col gap-8">
                 {cart.map((item) => (
-  <div key={item.id} className="cart-item">
+  <div
+    key={item.id}
+    className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+  >
     <img
       src={item.image}
       alt={item.title}
-      className="cart-item-image"
+      className="h-64 w-full object-cover"
     />
 
-    <div className="cart-item-details">
-      <h4>{item.title}</h4>
+    <div className="space-y-3 bg-gradient-to-br from-white to-slate-50 p-5">
+      <div>
+        <h4 className="text-lg font-bold text-slate-900">
+          {item.title}
+        </h4>
 
-      <p>
-        ₹{Number(item.price || 0).toFixed(2)} × {item.qty}
-      </p>
+        <div className="mt-1 flex items-center gap-2">
+          <span className="text-xl font-extrabold text-indigo-600">
+            ₹{Number(item.price || 0).toFixed(2)}
+          </span>
 
-      <p>
-        Seller:{" "}
-        {typeof item.seller === "object"
-          ? item.seller?.name || "Campus Seller"
-          : item.seller || "Campus Seller"}
-      </p>
+          <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+            Qty: {item.qty}
+          </span>
+        </div>
+      </div>
 
-      <p>
-  Pickup:{" "}
-  {typeof item.pickupLocation === "object"
-    ? item.pickupLocation?.name || "Campus Safe Desk"
-    : item.pickupLocation || "Campus Safe Desk"}
-</p>
+      <div className="space-y-2 border-t border-slate-200 pt-3">
+        <div className="flex items-start gap-3">
+          <span className="text-lg">👤</span>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Seller
+            </p>
+
+            <p className="text-sm font-medium text-slate-700">
+              {typeof item.seller === "object"
+                ? item.seller?.name || "Campus Seller"
+                : item.seller || "Campus Seller"}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3">
+          <span className="text-lg">📍</span>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Pickup Location
+            </p>
+
+            <p className="text-sm font-medium text-slate-700">
+              {typeof item.pickupLocation === "object"
+                ? item.pickupLocation?.name || "Campus Safe Desk"
+                : item.pickupLocation || "Campus Safe Desk"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={() => onRemove(item.id)}
+        className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+      >
+        Remove from Cart
+      </button>
     </div>
-
-    <button onClick={() => onRemove(item.id)}>
-      Remove
-    </button>
   </div>
 ))}
               </div>
