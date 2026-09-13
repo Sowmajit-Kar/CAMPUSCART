@@ -154,7 +154,13 @@ function App() {
               FLOATING ISLAND PILL NAVBAR (Pre-Login vs Post-Login Responsive Modes)
              ========================================================================= */}
       <div class="fixed top-6 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
-        <header class="floating-pill text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-4 sm:gap-6 pointer-events-auto max-w-2xl lg:max-w-4xl w-full whitespace-nowrap">
+        <header
+  class={`floating-pill text-white px-4 sm:px-5 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-3 sm:gap-5 pointer-events-auto whitespace-nowrap ${
+    isLoggedIn
+      ? "w-[calc(100%-2rem)] max-w-[1800px]"
+      : "w-fit max-w-[calc(100%-2rem)]"
+  }`}
+>
           {/* Minimal Geometric Logo */}
           <button
             onClick={() => navigateTo(isLoggedIn ? "home" : "overview")}
@@ -185,22 +191,22 @@ function App() {
 
           {/* Navigation Links inside Pill */}
           {isLoggedIn ? (
-            <div class="hidden sm:flex items-center gap-1 bg-white/10 p-1 rounded-full text-xs font-semibold flex-shrink-0">
+           <div class="hidden sm:flex items-center gap-3 bg-white/10 p-1.5 rounded-full text-xs font-semibold flex-shrink-0">
               <button
                 onClick={() => navigateTo("home")}
-                class={`px-3 py-1 rounded-full transition-all ${currentRoute === "home" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                class={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "home" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 HOME
               </button>
               <button
                 onClick={() => navigateTo("marketplace")}
-                class={`px-3 py-1 rounded-full transition-all ${currentRoute === "marketplace" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                class={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "marketplace" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 MARKETPLACE
               </button>
               <button
                 onClick={() => navigateTo("sell")}
-                class={`px-3 py-1 rounded-full transition-all ${
+                class={`px-4 py-1.5 rounded-full transition-all ${
                   currentRoute === "sell"
                     ? "bg-white text-black font-bold shadow"
                     : "text-neutral-300 hover:text-white"
@@ -210,26 +216,26 @@ function App() {
               </button>
               <button
                 onClick={() => navigateTo("services")}
-                class={`px-3 py-1 rounded-full transition-all ${currentRoute === "services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                class={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 SKILLS
               </button>
               <button
                 onClick={() => navigateTo("course")}
-                class={`px-3 py-1 rounded-full transition-all ${currentRoute === "course" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                class={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "course" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 COURSES
               </button>
               <button
                 onClick={() => navigateTo("overview")}
-                class={`px-3 py-1 rounded-full transition-all ${currentRoute === "overview" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                class={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "overview" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 OVERVIEW
               </button>
 
               <button
                 onClick={() => navigateTo("wishlist")}
-                class={`px-3 py-1 rounded-full transition-all ${
+                class={`px-4 py-1.5 rounded-full transition-all ${
                   currentRoute === "wishlist"
                     ? "bg-white text-black font-bold shadow"
                     : "text-neutral-300 hover:text-white"
@@ -269,7 +275,7 @@ function App() {
 
             {isLoggedIn ? (
               <div class="flex items-center gap-2">
-                <div class="hidden md:flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-full text-xs text-neutral-300 border border-white/10">
+                <div class="hidden md:flex items-center gap-1.5 bg-white/10 px-4 py-1.5 rounded-full text-xs text-neutral-300 border border-white/10">
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                   <span class="font-mono text-[11px] text-white font-bold">
                     {currentUser?.roll || "2024CS1089"}
