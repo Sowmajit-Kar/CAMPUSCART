@@ -3,16 +3,19 @@
   "version": "1.0.0",
   "description": "CampusCart — Next-Gen Student Marketplace (Genesis-Inspired)",
   "scripts": {
-    "dev": "npx serve frontend -l 3000",
-    "start": "npx serve frontend -l 3000",
-    "serve": "python -m http.server 3000 --directory frontend"
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "install:frontend": "npm --prefix frontend install"
   },
   "keywords": [
     "campuscart",
     "marketplace",
     "college",
+    "vite",
+    "react",
     "student-commerce"
   ],
-  "author": "",
+  "author": "The nightHawks",
   "license": "MIT"
 }

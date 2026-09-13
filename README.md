@@ -1,85 +1,85 @@
-<img width="1500" height="350" alt="image" src="https://github.com/user-attachments/assets/032f9923-3dcb-49eb-8381-fd6a98819bb3" />
+# 🎓 CampusCart — Next-Gen Student Marketplace (Genesis-Inspired)
 
-# 🎓 CampusCart — Next-Gen Student Marketplace 
-
-CampusCart is a college marketplace and peer skill exchange platform built with modern web aesthetics (Genesis-inspired design language, glassmorphism, procedural canvas reels, and cryptographic QR pickups).
+CampusCart is a college marketplace and peer skill exchange platform built with modern web aesthetics (Genesis-inspired design language, glassmorphism, procedural canvas reels, and cryptographic QR pickups), powered by **Vite + React 18** and **Tailwind CSS**.
 
 ---
-
 
 ## 📁 Repository Structure
 
-The project is structured with a modular frontend architecture prepared for standalone use and future backend API integration:
+The project is structured with a modern Vite + React frontend architecture prepared for standalone development and backend API integration:
 
 ```text
 CAMPUSCART/
-├── .gitignore                    # Excludes heavy video binaries, node_modules, temp files
-├── Makefile                      # Make commands for local dev, serving, and git operations
-├── package.json                  # Root npm scripts
-├── README.md                     # Documentation & git guide
-├── index.html                    # Root entry point with instant redirect to frontend
-└── frontend/                     # Modular Frontend Application
-    ├── index.html                # Clean HTML entry point
-    ├── package.json              # Frontend scripts
-    ├── css/
-    │   └── style.css             # Typography, watermarks, glassmorphism, animations
-    └── js/
+├── .gitignore                    # Excludes heavy media binaries, node_modules, dist/
+├── Makefile                      # Make commands for local dev, build, and preview
+├── package.json                  # Root npm runner scripts
+├── README.md                     # Documentation & setup guide
+├── backend/                      # Backend services
+├── index.html                    # Root portal launcher
+└── frontend/                     # Modern Vite + React Application
+    ├── index.html                # Vite HTML module entry point
+    ├── package.json              # React 18, Vite, Lucide, Tailwind dependencies
+    ├── vite.config.js            # Vite build configuration
+    ├── tailwind.config.js        # Custom brand theme & typography
+    ├── postcss.config.js         # PostCSS pipeline
+    └── src/
+        ├── main.jsx              # React 18 createRoot mounting
+        ├── App.jsx               # Core application state, modals & navigation
+        ├── index.css             # Tailwind directives + Genesis watermarks & keyframes
         ├── data/
         │   └── mockData.js       # Campus marketplace mock database
-        ├── components/
-        │   ├── VideoShowcase.js          # Procedural 60fps canvas motion reel
-        │   ├── CircularWheelShowcase.js  # Interactive category rotating wheel
-        │   ├── OverviewGatewayView.js    # Pre-login Genesis hero & comparison
-        │   ├── HomrPageIdeaView.js       # Post-login marketplace dashboard
-        │   ├── MarketplaceView.js        # Catalog grid & search filter
-        │   ├── ServicesView.js           # Student tutoring & gigs
-        │   ├── CourseView.js             # Course materials exchange
-        │   └── CartView.js               # Shopping cart & QR token generator
-        └── app.js                # Core App state, modals, and React mounting
-```
-
-
-
-## 🚀 How to Run Locally
-
-You can run the project using **Make**, **NPM**, or **Python**:
-
-### Option 1: Using Make (Recommended)
-```bash
-make dev
-# Launches http://localhost:3000
-```
-Run `make help` to see all available commands (`make serve`, `make clean`, `make git-prep`).
-
-### Option 2: Using NPM
-```bash
-npm run dev
-# or
-npm start
-```
-
-### Option 3: Using Python
-```bash
-python -m http.server 3000 --directory frontend
+        └── components/           # Modular React JSX Components
+            ├── VideoShowcase.jsx         # Procedural 60fps canvas motion reel
+            ├── CircularWheelShowcase.jsx # Interactive category rotating wheel
+            ├── OverviewGatewayView.jsx   # Pre-login Genesis hero & comparison
+            ├── HomrPageIdeaView.jsx      # Post-login marketplace dashboard
+            ├── MarketplaceView.jsx       # Product catalog grid & search filter
+            ├── SellItemView.jsx          # Listing creation & publish form
+            ├── ServicesView.jsx          # Student tutoring & peer gigs
+            ├── CourseView.jsx            # Course materials exchange
+            └── CartView.jsx              # Shopping cart & QR token generator
 ```
 
 ---
 
-## 📦 Initial Git Push Instructions
+## 🌟 Key Features
 
+1. **Vite + React 18**: Instant Hot Module Replacement (HMR) and optimized Rollup production builds.
+2. **Floating Island Pill Navigation**: Centered glassmorphism pill with geometric branding, dynamic route switching, and cart count badge.
+3. **Hero Section with Giant Watermark Typography**: Translucent Genesis watermark, campus metric statistics, and call-to-actions.
+4. **Interactive Procedural Showcase Reel**: HTML5 canvas engine rendering 60fps animated reels with chapter controls.
+5. **Student Marketplace & Seller Mode**: Filter by mode (Buy/Rent/Exchange), search, seller trust score badges, and new item listing form.
+6. **QR Handshake Confirmation**: Cryptographic pickup token generator with confetti celebration.
 
-To push this codebase to your remote GitHub or GitLab repository:
+---
 
+## 🚀 How to Run Locally
+
+### Option 1: Using NPM
 ```bash
-# 1. Check git status
-git status
+# 1. Install dependencies (first time only)
+npm run install:frontend
 
-# 2. Add your remote repository URL (replace with your GitHub repo URL)
-git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPOSITORY_NAME>.git
+# 2. Start Vite development server
+npm run dev
+# Launches http://localhost:3000 with instant HMR!
+```
 
-# 3. Rename branch to main if needed
-git branch -M main
+### Option 2: Using Make
+```bash
+# Start local Vite server
+make dev
 
-# 4. Push to remote
-git push -u origin main
+# Build production bundle
+make build
+
+# Preview production build
+make preview
+```
+
+### Production Build
+To create an optimized production build:
+```bash
+npm run build
+# Compiles minified bundle into frontend/dist/
 ```

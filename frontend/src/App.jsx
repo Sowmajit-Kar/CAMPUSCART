@@ -1,4 +1,15 @@
-const { useState, useEffect, useMemo, useRef } = React;
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import confetti from 'canvas-confetti';
+import { CAMPUS_DATA } from './data/mockData';
+import VideoShowcase from './components/VideoShowcase';
+import CircularWheelShowcase from './components/CircularWheelShowcase';
+import OverviewGatewayView from './components/OverviewGatewayView';
+import HomrPageIdeaView from './components/HomrPageIdeaView';
+import MarketplaceFullView from './components/MarketplaceView';
+import SellItemView from './components/SellItemView';
+import ServicesSection from './components/ServicesView';
+import CourseSection from './components/CourseView';
+import CartFullView from './components/CartView';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -111,18 +122,18 @@ function App() {
     setToastMsg("Your listing was published successfully.");
   };
   return (
-    <div class="relative min-h-screen flex flex-col bg-[#fcfcfd]">
+    <div className="relative min-h-screen flex flex-col bg-[#fcfcfd]">
       {/* =========================================================================
               FLOATING ISLAND PILL NAVBAR (Pre-Login vs Post-Login Responsive Modes)
              ========================================================================= */}
-      <div class="fixed top-6 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
-        <header class="floating-pill text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-4 sm:gap-6 pointer-events-auto max-w-2xl lg:max-w-4xl w-full whitespace-nowrap">
+      <div className="fixed top-6 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
+        <header className="floating-pill text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-4 sm:gap-6 pointer-events-auto max-w-2xl lg:max-w-4xl w-full whitespace-nowrap">
           {/* Minimal Geometric Logo */}
           <button
             onClick={() => navigateTo(isLoggedIn ? "home" : "overview")}
-            class="flex items-center gap-2.5 group cursor-pointer flex-shrink-0"
+            className="flex items-center gap-2.5 group cursor-pointer flex-shrink-0"
           >
-            <div class="w-7 h-7 rounded-full border border-white/30 flex items-center justify-center text-white text-xs group-hover:rotate-45 transition-transform duration-300">
+            <div className="w-7 h-7 rounded-full border border-white/30 flex items-center justify-center text-white text-xs group-hover:rotate-45 transition-transform duration-300">
               <svg
                 width="14"
                 height="14"
@@ -140,29 +151,29 @@ function App() {
                 <path d="m9.17 14.83-4.24 4.24"></path>
               </svg>
             </div>
-            <span class="font-display font-bold text-sm tracking-wider uppercase text-white">
+            <span className="font-display font-bold text-sm tracking-wider uppercase text-white">
               CampusCart
             </span>
           </button>
 
           {/* Navigation Links inside Pill */}
           {isLoggedIn ? (
-            <div class="hidden sm:flex items-center gap-1 bg-white/10 p-1 rounded-full text-xs font-semibold flex-shrink-0">
+            <div className="hidden sm:flex items-center gap-1 bg-white/10 p-1 rounded-full text-xs font-semibold flex-shrink-0">
               <button
                 onClick={() => navigateTo("home")}
-                class={`px-3 py-1 rounded-full transition-all ${currentRoute === "home" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-3 py-1 rounded-full transition-all ${currentRoute === "home" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 HOME
               </button>
               <button
                 onClick={() => navigateTo("marketplace")}
-                class={`px-3 py-1 rounded-full transition-all ${currentRoute === "marketplace" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-3 py-1 rounded-full transition-all ${currentRoute === "marketplace" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 MARKETPLACE
               </button>
               <button
   onClick={() => navigateTo('sell')}
-  class={`px-3 py-1 rounded-full transition-all ${
+  className={`px-3 py-1 rounded-full transition-all ${
     currentRoute === 'sell'
       ? 'bg-white text-black font-bold shadow'
       : 'text-neutral-300 hover:text-white'
@@ -172,46 +183,46 @@ function App() {
 </button>
               <button
                 onClick={() => navigateTo("services")}
-                class={`px-3 py-1 rounded-full transition-all ${currentRoute === "services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-3 py-1 rounded-full transition-all ${currentRoute === "services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 SKILLS
               </button>
               <button
                 onClick={() => navigateTo("course")}
-                class={`px-3 py-1 rounded-full transition-all ${currentRoute === "course" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-3 py-1 rounded-full transition-all ${currentRoute === "course" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 COURSES
               </button>
               <button
                 onClick={() => navigateTo("overview")}
-                class={`px-3 py-1 rounded-full transition-all ${currentRoute === "overview" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-3 py-1 rounded-full transition-all ${currentRoute === "overview" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 OVERVIEW
               </button>
             </div>
           ) : (
-            <div class="hidden sm:flex items-center gap-2 bg-white/10 px-3.5 py-1 rounded-full text-xs font-semibold flex-shrink-0">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span class="text-white font-bold tracking-wider">
+            <div className="hidden sm:flex items-center gap-2 bg-white/10 px-3.5 py-1 rounded-full text-xs font-semibold flex-shrink-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-white font-bold tracking-wider">
                 OVERVIEW & TOUR
               </span>
-              <span class="text-[10px] text-neutral-400 font-mono pl-1 border-l border-white/20">
+              <span className="text-[10px] text-neutral-400 font-mono pl-1 border-l border-white/20">
                 PRE-LOGIN GATEWAY
               </span>
             </div>
           )}
 
           {/* Right Menu / Cart & User Actions */}
-          <div class="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
             {isLoggedIn && (
               <button
                 onClick={() => navigateTo("cart")}
-                class="relative text-xs text-neutral-300 hover:text-white flex items-center gap-1 font-semibold transition px-2 py-1 rounded-full hover:bg-white/10"
+                className="relative text-xs text-neutral-300 hover:text-white flex items-center gap-1 font-semibold transition px-2 py-1 rounded-full hover:bg-white/10"
                 title="Cart"
               >
-                <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                <i data-lucide="shopping-bag" className="w-4 h-4"></i>
                 {cart.length > 0 && (
-                  <span class="bg-white text-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                  <span className="bg-white text-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                     {cart.reduce((a, b) => a + b.qty, 0)}
                   </span>
                 )}
@@ -219,16 +230,16 @@ function App() {
             )}
 
             {isLoggedIn ? (
-              <div class="flex items-center gap-2">
-                <div class="hidden md:flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-full text-xs text-neutral-300 border border-white/10">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                  <span class="font-mono text-[11px] text-white font-bold">
+              <div className="flex items-center gap-2">
+                <div className="hidden md:flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-full text-xs text-neutral-300 border border-white/10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  <span className="font-mono text-[11px] text-white font-bold">
                     {currentUser?.roll || "2024CS1089"}
                   </span>
                 </div>
                 <button
                   onClick={handleLogout}
-                  class="text-xs bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white px-3 py-1 rounded-full font-medium transition flex items-center gap-1.5 cursor-pointer border border-white/15"
+                  className="text-xs bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white px-3 py-1 rounded-full font-medium transition flex items-center gap-1.5 cursor-pointer border border-white/15"
                   title="Sign Out"
                 >
                   <svg
@@ -245,13 +256,13 @@ function App() {
                     <polyline points="16 17 21 12 16 7"></polyline>
                     <line x1="21" y1="12" x2="9" y2="12"></line>
                   </svg>
-                  <span class="hidden md:inline">Sign Out</span>
+                  <span className="hidden md:inline">Sign Out</span>
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => setIsLoginOpen(true)}
-                class="text-xs bg-white text-neutral-950 hover:bg-neutral-200 px-4 py-1.5 rounded-full font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+                className="text-xs bg-white text-neutral-950 hover:bg-neutral-200 px-4 py-1.5 rounded-full font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
                 <svg
                   width="12"
@@ -273,7 +284,7 @@ function App() {
             {/* Hamburger dropdown toggle */}
             <button
               onClick={() => setNavMenuOpen(!navMenuOpen)}
-              class="text-neutral-300 hover:text-white p-1 rounded-full hover:bg-white/10 transition cursor-pointer"
+              className="text-neutral-300 hover:text-white p-1 rounded-full hover:bg-white/10 transition cursor-pointer"
               title="Menu"
             >
               <svg
@@ -294,10 +305,10 @@ function App() {
 
       {/* Mobile / Hamburger Overlay Menu */}
       {navMenuOpen && (
-        <div class="fixed inset-0 z-40 bg-neutral-950/80 backdrop-blur-md flex flex-col justify-center items-center gap-6 text-white text-2xl font-display font-bold animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-40 bg-neutral-950/80 backdrop-blur-md flex flex-col justify-center items-center gap-6 text-white text-2xl font-display font-bold animate-in fade-in duration-200">
           <button
             onClick={() => navigateTo("overview")}
-            class="hover:text-neutral-400"
+            className="hover:text-neutral-400"
           >
             OVERVIEW / ABOUT
           </button>
@@ -305,31 +316,31 @@ function App() {
             <>
               <button
                 onClick={() => navigateTo("home")}
-                class="hover:text-neutral-400"
+                className="hover:text-neutral-400"
               >
                 HOME
               </button>
               <button
                 onClick={() => navigateTo("marketplace")}
-                class="hover:text-neutral-400"
+                className="hover:text-neutral-400"
               >
                 STUDENT MARKETPLACE
               </button>
               <button
                 onClick={() => navigateTo("services")}
-                class="hover:text-neutral-400"
+                className="hover:text-neutral-400"
               >
                 PEER SKILLS & GIGS
               </button>
               <button
                 onClick={() => navigateTo("course")}
-                class="hover:text-neutral-400"
+                className="hover:text-neutral-400"
               >
                 ACADEMIC COURSES
               </button>
               <button
                 onClick={() => navigateTo("cart")}
-                class="hover:text-neutral-400"
+                className="hover:text-neutral-400"
               >
                 MY CART ({cart.length})
               </button>
@@ -338,7 +349,7 @@ function App() {
                   handleLogout();
                   setNavMenuOpen(false);
                 }}
-                class="mt-4 px-6 py-2 bg-red-500/20 text-red-300 border border-red-500/30 rounded-full text-base"
+                className="mt-4 px-6 py-2 bg-red-500/20 text-red-300 border border-red-500/30 rounded-full text-base"
               >
                 SIGN OUT
               </button>
@@ -349,14 +360,14 @@ function App() {
                 setIsLoginOpen(true);
                 setNavMenuOpen(false);
               }}
-              class="mt-4 px-6 py-2 bg-white text-black rounded-full text-base"
+              className="mt-4 px-6 py-2 bg-white text-black rounded-full text-base"
             >
               STUDENT SIGN IN
             </button>
           )}
           <button
             onClick={() => setNavMenuOpen(false)}
-            class="text-sm font-sans text-neutral-400 mt-6 tracking-widest uppercase"
+            className="text-sm font-sans text-neutral-400 mt-6 tracking-widest uppercase"
           >
             ✕ Close Menu
           </button>
@@ -364,7 +375,7 @@ function App() {
       )}
 
       {/* MAIN VIEW CONTROLLER */}
-      <main class="flex-1">
+      <main className="flex-1">
         {currentRoute === "overview" && (
           <OverviewGatewayView
             isLoggedIn={isLoggedIn}
@@ -444,44 +455,44 @@ function App() {
       {/* =========================================================================
               CLEAN EDITORIAL FOOTER WITH FROSTED WATERMARK (Video Timestamp 00:13 - 00:18)
              ========================================================================= */}
-      <footer class="bg-neutral-950 text-white relative overflow-hidden pt-20 pb-12 px-6 sm:px-12 border-t border-neutral-900">
+      <footer className="bg-neutral-950 text-white relative overflow-hidden pt-20 pb-12 px-6 sm:px-12 border-t border-neutral-900">
         {/* Massive Watermark from Video: "Genesis" -> "CampusCart" */}
-        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-center pointer-events-none opacity-10">
-          <span class="font-display font-black text-[14vw] tracking-tighter uppercase whitespace-nowrap">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-center pointer-events-none opacity-10">
+          <span className="font-display font-black text-[14vw] tracking-tighter uppercase whitespace-nowrap">
             CampusCart
           </span>
         </div>
 
-        <div class="max-w-7xl mx-auto relative z-10 grid grid-cols-1 md:grid-cols-4 gap-12 pb-16 border-b border-neutral-800">
-          <div class="md:col-span-2 space-y-4">
-            <div class="font-display font-bold text-2xl tracking-wide flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
+        <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 md:grid-cols-4 gap-12 pb-16 border-b border-neutral-800">
+          <div className="md:col-span-2 space-y-4">
+            <div className="font-display font-bold text-2xl tracking-wide flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
               CampusCart AI
             </div>
-            <p class="text-sm text-neutral-400 max-w-sm leading-relaxed">
+            <p className="text-sm text-neutral-400 max-w-sm leading-relaxed">
               The peer-to-peer ecosystem designed exclusively for college
               students. Trade textbooks, lab instruments, electronics, and
               skills with trusted verification.
             </p>
-            <div class="flex items-center gap-3 pt-2 text-xs text-neutral-400">
-              <span class="px-3 py-1 rounded-full border border-neutral-800 bg-neutral-900">
+            <div className="flex items-center gap-3 pt-2 text-xs text-neutral-400">
+              <span className="px-3 py-1 rounded-full border border-neutral-800 bg-neutral-900">
                 @campus.edu only
               </span>
-              <span class="px-3 py-1 rounded-full border border-neutral-800 bg-neutral-900">
+              <span className="px-3 py-1 rounded-full border border-neutral-800 bg-neutral-900">
                 CCTV Safe Handovers
               </span>
             </div>
           </div>
 
           <div>
-            <h4 class="text-xs uppercase font-bold tracking-wider text-neutral-400 mb-4">
+            <h4 className="text-xs uppercase font-bold tracking-wider text-neutral-400 mb-4">
               Marketplace
             </h4>
-            <ul class="space-y-2 text-sm text-neutral-300">
+            <ul className="space-y-2 text-sm text-neutral-300">
               <li>
                 <button
                   onClick={() => navigateTo("marketplace")}
-                  class="hover:text-white"
+                  className="hover:text-white"
                 >
                   Engineering Drafters
                 </button>
@@ -489,7 +500,7 @@ function App() {
               <li>
                 <button
                   onClick={() => navigateTo("marketplace")}
-                  class="hover:text-white"
+                  className="hover:text-white"
                 >
                   Casio Calculators
                 </button>
@@ -497,7 +508,7 @@ function App() {
               <li>
                 <button
                   onClick={() => navigateTo("marketplace")}
-                  class="hover:text-white"
+                  className="hover:text-white"
                 >
                   Lab Manuals & Notes
                 </button>
@@ -505,7 +516,7 @@ function App() {
               <li>
                 <button
                   onClick={() => navigateTo("marketplace")}
-                  class="hover:text-white"
+                  className="hover:text-white"
                 >
                   Hostel Living Essentials
                 </button>
@@ -513,7 +524,7 @@ function App() {
               <li>
                 <button
                   onClick={() => navigateTo("marketplace")}
-                  class="hover:text-white"
+                  className="hover:text-white"
                 >
                   Campus Cycles
                 </button>
@@ -522,32 +533,32 @@ function App() {
           </div>
 
           <div>
-            <h4 class="text-xs uppercase font-bold tracking-wider text-neutral-400 mb-4">
+            <h4 className="text-xs uppercase font-bold tracking-wider text-neutral-400 mb-4">
               Verification & Safety
             </h4>
-            <ul class="space-y-2 text-sm text-neutral-300">
+            <ul className="space-y-2 text-sm text-neutral-300">
               <li>
-                <a href="#" class="hover:text-white">
+                <a href="#" className="hover:text-white">
                   Library Safe Desk
                 </a>
               </li>
               <li>
-                <a href="#" class="hover:text-white">
+                <a href="#" className="hover:text-white">
                   Canteen Meetup Zone
                 </a>
               </li>
               <li>
-                <a href="#" class="hover:text-white">
+                <a href="#" className="hover:text-white">
                   Hostel Entrance Desks
                 </a>
               </li>
               <li>
-                <a href="#" class="hover:text-white">
+                <a href="#" className="hover:text-white">
                   Graph Trust Score
                 </a>
               </li>
               <li>
-                <a href="#" class="hover:text-white">
+                <a href="#" className="hover:text-white">
                   QR Handshake Protocol
                 </a>
               </li>
@@ -555,16 +566,16 @@ function App() {
           </div>
         </div>
 
-        <div class="max-w-7xl mx-auto pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-500 relative z-10 gap-4">
+        <div className="max-w-7xl mx-auto pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-500 relative z-10 gap-4">
           <div>© 2026 CampusCart System. All university rights reserved.</div>
-          <div class="flex gap-6">
-            <a href="#" class="hover:text-neutral-300">
+          <div className="flex gap-6">
+            <a href="#" className="hover:text-neutral-300">
               Privacy Policy
             </a>
-            <a href="#" class="hover:text-neutral-300">
+            <a href="#" className="hover:text-neutral-300">
               Student Code of Conduct
             </a>
-            <a href="#" class="hover:text-neutral-300">
+            <a href="#" className="hover:text-neutral-300">
               Campus Security Helpline
             </a>
           </div>
@@ -575,16 +586,16 @@ function App() {
               MODAL: LOGIN DIALOG (Institutional Domain Access)
              ========================================================================= */}
       {isLoginOpen && (
-        <div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-neutral-100 text-center relative animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-neutral-100 text-center relative animate-in fade-in zoom-in duration-200">
             <button
               onClick={() => setIsLoginOpen(false)}
-              class="absolute top-6 right-6 text-neutral-400 hover:text-neutral-800 text-2xl leading-none"
+              className="absolute top-6 right-6 text-neutral-400 hover:text-neutral-800 text-2xl leading-none"
             >
               &times;
             </button>
 
-            <div class="w-12 h-12 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-3 text-neutral-900">
+            <div className="w-12 h-12 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-3 text-neutral-900">
               <svg
                 width="22"
                 height="22"
@@ -599,27 +610,27 @@ function App() {
               </svg>
             </div>
 
-            <h3 class="font-display text-2xl font-bold text-neutral-900 mb-1">
+            <h3 className="font-display text-2xl font-bold text-neutral-900 mb-1">
               Sign in with College ID
             </h3>
-            <p class="text-xs text-neutral-500 mb-5">
+            <p className="text-xs text-neutral-500 mb-5">
               Access restricted to verified university domain accounts.
             </p>
 
             {/* 1-Click Fast Student Demo Login */}
             <button
               onClick={() => handleLogin("2024cs1089@campus.edu")}
-              class="w-full mb-4 py-3 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              className="w-full mb-4 py-3 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
             >
               <span>⚡ Instant Student ID Sign In (2024CS1089@campus.edu)</span>
             </button>
 
-            <div class="relative flex py-2 items-center mb-3">
-              <div class="flex-grow border-t border-neutral-200"></div>
-              <span class="flex-shrink mx-3 text-[11px] text-neutral-400 font-mono uppercase">
+            <div className="relative flex py-2 items-center mb-3">
+              <div className="flex-grow border-t border-neutral-200"></div>
+              <span className="flex-shrink mx-3 text-[11px] text-neutral-400 font-mono uppercase">
                 Or credentials
               </span>
-              <div class="flex-grow border-t border-neutral-200"></div>
+              <div className="flex-grow border-t border-neutral-200"></div>
             </div>
 
             <form
@@ -627,10 +638,10 @@ function App() {
                 e.preventDefault();
                 handleLogin(loginEmail);
               }}
-              class="space-y-4 text-left"
+              className="space-y-4 text-left"
             >
               <div>
-                <label class="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
                   College Email Address
                 </label>
                 <input
@@ -639,11 +650,11 @@ function App() {
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   placeholder="rollnumber@campus.edu"
-                  class="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
                 />
               </div>
               <div>
-                <label class="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
                   Password
                 </label>
                 <input
@@ -652,12 +663,12 @@ function App() {
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   placeholder="••••••••"
-                  class="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
                 />
               </div>
               <button
                 type="submit"
-                class="w-full py-3.5 bg-neutral-950 hover:bg-neutral-800 text-white font-bold rounded-xl text-sm transition shadow-lg mt-2 cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-neutral-950 hover:bg-neutral-800 text-white font-bold rounded-xl text-sm transition shadow-lg mt-2 cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>Authenticate & Enter Main Portal</span>
                 <span>→</span>
@@ -671,49 +682,49 @@ function App() {
               MODAL: SELLER TRUST PROFILE
              ========================================================================= */}
       {selectedSeller && (
-        <div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl relative">
             <button
               onClick={() => setSelectedSeller(null)}
-              class="absolute top-6 right-6 text-neutral-400 text-2xl leading-none"
+              className="absolute top-6 right-6 text-neutral-400 text-2xl leading-none"
             >
               &times;
             </button>
-            <div class="flex items-center gap-4 mb-6">
+            <div className="flex items-center gap-4 mb-6">
               <img
                 src={selectedSeller.avatar}
-                class="w-16 h-16 rounded-2xl object-cover border-2 border-neutral-900"
+                className="w-16 h-16 rounded-2xl object-cover border-2 border-neutral-900"
                 alt=""
               />
               <div>
-                <h4 class="font-display text-xl font-bold text-neutral-900">
+                <h4 className="font-display text-xl font-bold text-neutral-900">
                   {selectedSeller.name}
                 </h4>
-                <p class="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-500">
                   {selectedSeller.department}
                 </p>
-                <span class="inline-block mt-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                <span className="inline-block mt-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
                   Verified Student
                 </span>
               </div>
             </div>
 
-            <div class="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 mb-4 space-y-2 text-xs">
-              <div class="flex justify-between items-center">
-                <span class="font-semibold text-neutral-700">
+            <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 mb-4 space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-neutral-700">
                   Mutual Graph Trust Score
                 </span>
-                <span class="font-black text-emerald-600 text-sm">
+                <span className="font-black text-emerald-600 text-sm">
                   {selectedSeller.trustScore} / 100
                 </span>
               </div>
-              <div class="w-full bg-neutral-200 h-2 rounded-full overflow-hidden">
+              <div className="w-full bg-neutral-200 h-2 rounded-full overflow-hidden">
                 <div
-                  class="bg-emerald-600 h-full rounded-full"
+                  className="bg-emerald-600 h-full rounded-full"
                   style={{ width: `${selectedSeller.trustScore}%` }}
                 ></div>
               </div>
-              <p class="text-[11px] text-neutral-400">
+              <p className="text-[11px] text-neutral-400">
                 Calculated from 0 report flags, 28 verified handovers, and
                 in-person ratings.
               </p>
@@ -724,7 +735,7 @@ function App() {
                 startChat(selectedSeller, { title: "Seller Inquiry" });
                 setSelectedSeller(null);
               }}
-              class="w-full py-3 bg-neutral-900 text-white font-bold rounded-xl text-xs hover:bg-neutral-800 transition"
+              className="w-full py-3 bg-neutral-900 text-white font-bold rounded-xl text-xs hover:bg-neutral-800 transition"
             >
               Send Direct Campus Message
             </button>
@@ -736,42 +747,42 @@ function App() {
               DRAWER: REAL-TIME BUYER-SELLER CHAT
              ========================================================================= */}
       {activeChat && (
-        <div class="fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-white shadow-2xl border-l border-neutral-200 flex flex-col">
-          <div class="p-4 border-b border-neutral-200 flex items-center justify-between bg-neutral-50">
-            <div class="flex items-center gap-3">
+        <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-white shadow-2xl border-l border-neutral-200 flex flex-col">
+          <div className="p-4 border-b border-neutral-200 flex items-center justify-between bg-neutral-50">
+            <div className="flex items-center gap-3">
               <img
                 src={activeChat.seller.avatar}
-                class="w-9 h-9 rounded-full object-cover"
+                className="w-9 h-9 rounded-full object-cover"
                 alt=""
               />
               <div>
-                <h4 class="font-bold text-sm text-neutral-900">
+                <h4 className="font-bold text-sm text-neutral-900">
                   {activeChat.seller.name}
                 </h4>
-                <p class="text-[10px] text-neutral-500 truncate max-w-[180px]">
+                <p className="text-[10px] text-neutral-500 truncate max-w-[180px]">
                   Re: {activeChat.item.title}
                 </p>
               </div>
             </div>
             <button
               onClick={() => setActiveChat(null)}
-              class="text-neutral-400 text-2xl"
+              className="text-neutral-400 text-2xl"
             >
               &times;
             </button>
           </div>
 
-          <div class="flex-1 p-4 overflow-y-auto space-y-3 text-xs custom-scroll bg-neutral-100/50">
-            <div class="text-center text-[10px] text-neutral-400 py-1">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 text-xs custom-scroll bg-neutral-100/50">
+            <div className="text-center text-[10px] text-neutral-400 py-1">
               🔒 In-Campus Verified Peer Chat
             </div>
             {activeChat.messages.map((m, idx) => (
               <div
                 key={idx}
-                class={`flex ${m.sender === "buyer" ? "justify-end" : "justify-start"}`}
+                className={`flex ${m.sender === "buyer" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  class={`p-3 rounded-2xl max-w-[80%] leading-relaxed ${m.sender === "buyer" ? "bg-neutral-950 text-white rounded-br-xs" : "bg-white border border-neutral-200 text-neutral-800 rounded-bl-xs"}`}
+                  className={`p-3 rounded-2xl max-w-[80%] leading-relaxed ${m.sender === "buyer" ? "bg-neutral-950 text-white rounded-br-xs" : "bg-white border border-neutral-200 text-neutral-800 rounded-bl-xs"}`}
                 >
                   {m.text}
                 </div>
@@ -807,17 +818,17 @@ function App() {
                 );
               }, 1100);
             }}
-            class="p-3 border-t border-neutral-200 bg-white flex gap-2"
+            className="p-3 border-t border-neutral-200 bg-white flex gap-2"
           >
             <input
               name="chatMsg"
               type="text"
               placeholder="Type message or counter offer..."
-              class="flex-1 px-3 py-2 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-1 focus:ring-black"
+              className="flex-1 px-3 py-2 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-1 focus:ring-black"
             />
             <button
               type="submit"
-              class="px-4 py-2 bg-neutral-950 text-white font-bold rounded-xl text-xs hover:bg-neutral-800"
+              className="px-4 py-2 bg-neutral-950 text-white font-bold rounded-xl text-xs hover:bg-neutral-800"
             >
               Send
             </button>
@@ -829,34 +840,34 @@ function App() {
               MODAL: QR PICKUP VERIFICATION
              ========================================================================= */}
       {qrModalItem && (
-        <div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl relative">
             <button
               onClick={() => setQrModalItem(null)}
-              class="absolute top-4 right-4 text-neutral-400 text-2xl leading-none"
+              className="absolute top-4 right-4 text-neutral-400 text-2xl leading-none"
             >
               &times;
             </button>
-            <span class="text-[10px] uppercase font-bold tracking-widest bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] uppercase font-bold tracking-widest bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
               Safe Pickup Token
             </span>
-            <h3 class="font-display text-xl font-bold text-neutral-900">
+            <h3 className="font-display text-xl font-bold text-neutral-900">
               {qrModalItem.title}
             </h3>
-            <p class="text-xs text-neutral-500">
+            <p className="text-xs text-neutral-500">
               Show this QR code to <strong>{qrModalItem.seller.name}</strong> at{" "}
               <em>{qrModalItem.pickupLocation}</em>.
             </p>
 
-            <div class="p-4 bg-neutral-50 rounded-2xl border border-neutral-200 inline-block">
+            <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-200 inline-block">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=CAMPUSCART-PICKUP-${qrModalItem.id}`}
                 alt="Pickup QR Code"
-                class="w-36 h-36 mx-auto rounded-lg"
+                className="w-36 h-36 mx-auto rounded-lg"
               />
             </div>
 
-            <div class="text-[11px] font-mono text-neutral-400">
+            <div className="text-[11px] font-mono text-neutral-400">
               HASH #CP-{Math.floor(1000 + Math.random() * 9000)}
             </div>
 
@@ -868,7 +879,7 @@ function App() {
                   "🎉 QR Handover Verified! Both buyer & seller trust score increased.",
                 );
               }}
-              class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition"
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition"
             >
               Simulate QR Handshake Completed
             </button>
@@ -878,7 +889,7 @@ function App() {
 
       {/* TOAST POPUP */}
       {toastMsg && (
-        <div class="fixed bottom-6 right-6 z-50 bg-neutral-950 text-white px-5 py-3 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed bottom-6 right-6 z-50 bg-neutral-950 text-white px-5 py-3 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2 animate-in slide-in-from-bottom-4 duration-300">
           <span>{toastMsg}</span>
         </div>
       )}
@@ -886,8 +897,4 @@ function App() {
   );
 }
 
-window.App = App;
-
-// Render React App
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App />);
+export default App;
