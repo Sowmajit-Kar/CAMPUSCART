@@ -1,5 +1,21 @@
-import React, { useState, useMemo } from 'react';
-import { WB_ZONES, WB_COLLEGES, WB_STREAMS, DELIVERY_MODES } from '../data/westBengalColleges';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { WB_MAP_CONFIG, WB_ZONES, WB_COLLEGES, WB_STREAMS, DELIVERY_MODES } from '../data/westBengalColleges';
+
+// Map Tile Providers
+const TILE_LAYERS = {
+  dark: {
+    name: 'Night Radar',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap'
+  },
+  voyager: {
+    name: 'Street View',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap'
+  }
+};
 
 export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege }) {
   const [selectedZone, setSelectedZone] = useState('all');
@@ -7,6 +23,14 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCollegeId, setActiveCollegeId] = useState('cmc-kolkata');
   const [selectedDeliveryMode, setSelectedDeliveryMode] = useState('in-campus'); // 'in-campus' | 'out-of-campus'
+  const [mapStyle, setMapStyle] = useState('dark'); // 'dark' | 'voyager'
+  const [currentZoom, setCurrentZoom] = useState(WB_MAP_CONFIG.defaultZoom);
+
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const tileLayerRef = useRef(null);
+  const markersRef = useRef({});
+  const polygonsRef = useRef({});
 
   // Filter colleges based on zone, stream, and search query
   const filteredColleges = useMemo(() => {
@@ -28,16 +52,295 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
     return WB_COLLEGES.find((c) => c.id === activeCollegeId) || filteredColleges[0] || WB_COLLEGES[0];
   }, [activeCollegeId, filteredColleges]);
 
+  // Handle escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // =========================================================================
+  // LEAFLET MAP INITIALIZATION & LIFECYCLE
+  // =========================================================================
+  useEffect(() => {
+    if (!isOpen || !mapContainerRef.current) return;
+
+    // Destroy existing map instance if any
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+
+    // Initialize Leaflet Map
+    const map = L.map(mapContainerRef.current, {
+      center: WB_MAP_CONFIG.center,
+      zoom: WB_MAP_CONFIG.defaultZoom,
+      minZoom: WB_MAP_CONFIG.minZoom,
+      maxZoom: WB_MAP_CONFIG.maxZoom,
+      zoomControl: false, // We will use custom large high-contrast + / - buttons
+      attributionControl: false
+    });
+
+    // Add Base Tile Layer
+    const tileConfig = TILE_LAYERS[mapStyle];
+    tileLayerRef.current = L.tileLayer(tileConfig.url, {
+      maxZoom: 19,
+      subdomains: 'abcd',
+      attribution: tileConfig.attribution
+    }).addTo(map);
+
+    // Track zoom state
+    map.on('zoomend', () => {
+      setCurrentZoom(map.getZoom());
+    });
+
+    mapInstanceRef.current = map;
+
+    // Delayed invalidateSize to ensure full modal dimensions are applied
+    const timer = setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 150);
+
+    return () => {
+      clearTimeout(timer);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [isOpen]);
+
+  // Switch Tile Style (Dark vs Voyager Street)
+  useEffect(() => {
+    if (!mapInstanceRef.current || !tileLayerRef.current) return;
+    tileLayerRef.current.setUrl(TILE_LAYERS[mapStyle].url);
+  }, [mapStyle]);
+
+  // =========================================================================
+  // RENDER ZONAL POLYGONS & DIVISIONS
+  // =========================================================================
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    // Clear old zone polygons
+    Object.values(polygonsRef.current).forEach((layer) => {
+      if (map.hasLayer(layer)) map.removeLayer(layer);
+    });
+    polygonsRef.current = {};
+
+    // Render zone boundary polygons
+    WB_ZONES.forEach((zone) => {
+      if (!zone.polygon) return;
+
+      const isSelected = selectedZone === zone.id;
+      const poly = L.polygon(zone.polygon, {
+        color: zone.color,
+        weight: isSelected ? 3 : 1.8,
+        dashArray: isSelected ? 'none' : '5, 8',
+        fillColor: zone.color,
+        fillOpacity: isSelected ? 0.22 : 0.08,
+        smoothFactor: 1
+      }).addTo(map);
+
+      // Zonal Tooltip
+      poly.bindTooltip(
+        `<div style="font-weight:700; font-size:11px; color:${zone.color};">📍 ${zone.name}</div>`,
+        { sticky: true, className: 'zone-boundary-tooltip' }
+      );
+
+      poly.on('click', () => {
+        setSelectedZone(zone.id);
+        map.flyTo(zone.center, zone.zoom, { duration: 0.8 });
+      });
+
+      polygonsRef.current[zone.id] = poly;
+    });
+  }, [isOpen, selectedZone]);
+
+  // =========================================================================
+  // RENDER HIGH-VISIBILITY COLLEGE PINS
+  // =========================================================================
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    // Remove old markers
+    Object.values(markersRef.current).forEach((marker) => {
+      if (map.hasLayer(marker)) map.removeLayer(marker);
+    });
+    markersRef.current = {};
+
+    filteredColleges.forEach((college) => {
+      const isSelected = college.id === activeCollegeId;
+      const isMedical = college.stream === 'medical';
+
+      // Stream colors & accents
+      const primaryColor = isMedical ? '#f43f5e' : '#14b8a6'; // Rose red for Medical, Teal for Engg
+      const badgeBg = isMedical ? 'bg-rose-500' : 'bg-teal-500';
+      const borderGlow = isSelected
+        ? `border-white ring-4 ${isMedical ? 'ring-rose-500/60' : 'ring-teal-500/60'} scale-110`
+        : `border-white/80 ${isMedical ? 'hover:ring-rose-400/40' : 'hover:ring-teal-400/40'} hover:scale-105`;
+
+      // Custom HTML Pin via Leaflet divIcon
+      const pinHtml = `
+        <div class="relative flex flex-col items-center group cursor-pointer transition-all duration-200 ${isSelected ? 'z-50' : 'z-20'}">
+          <!-- Pulse animation on selected pin -->
+          ${
+            isSelected
+              ? `<span class="absolute -top-1 -left-1 w-8 h-8 rounded-full ${badgeBg} animate-ping opacity-75"></span>`
+              : ''
+          }
+          
+          <!-- Pin Beacon Body -->
+          <div class="relative w-7 h-7 rounded-full ${badgeBg} text-white shadow-xl flex items-center justify-center border-2 ${borderGlow} transition-transform">
+            ${
+              isMedical
+                ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z"/></svg>`
+                : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>`
+            }
+          </div>
+
+          <!-- Pin Bottom Needle -->
+          <div class="w-1.5 h-1.5 bg-white rotate-45 -mt-0.5 shadow-sm"></div>
+
+          <!-- Floating Name Label Pill -->
+          <div class="mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-tight whitespace-nowrap shadow-lg border transition-all ${
+            isSelected
+              ? `${isMedical ? 'bg-rose-950/95 border-rose-500 text-rose-200' : 'bg-teal-950/95 border-teal-500 text-teal-200'} scale-105`
+              : 'bg-neutral-900/90 border-white/20 text-neutral-200 group-hover:bg-neutral-800'
+          }">
+            <span class="mr-1">${isMedical ? '🩺' : '⚙️'}</span>${college.shortName}
+          </div>
+        </div>
+      `;
+
+      const customIcon = L.divIcon({
+        className: 'wb-college-pin-wrapper',
+        html: pinHtml,
+        iconSize: [120, 52],
+        iconAnchor: [60, 28]
+      });
+
+      const marker = L.marker([college.lat, college.lng], {
+        icon: customIcon,
+        riseOnHover: true,
+        zIndexOffset: isSelected ? 1000 : 100
+      }).addTo(map);
+
+      // Popup on click
+      const popupHtml = `
+        <div style="font-family: sans-serif; color: #fff; background: #0f172a; padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.15); min-width: 220px;">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+            <span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 6px; border-radius:6px; background:${primaryColor}22; color:${primaryColor}; border:1px solid ${primaryColor}55;">
+              ${isMedical ? '🩺 Medical College' : '⚙️ Engineering Hub'}
+            </span>
+          </div>
+          <div style="font-weight:700; font-size:13px; color:#fff; margin-bottom:3px; line-height:1.2;">
+            ${college.name}
+          </div>
+          <div style="font-size:11px; color:#94a3b8; margin-bottom:8px;">
+            📍 ${college.city}, ${college.district} • PIN ${college.pincode}
+          </div>
+          <div style="font-size:11px; color:#38bdf8; background:rgba(56,189,248,0.1); padding:4px 8px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(56,189,248,0.2);">
+            ⚡ Direct Senior Handover: <b>${college.avgMeetupTime}</b>
+          </div>
+          <button id="popup-select-${college.id}" style="width:100%; cursor:pointer; background:${primaryColor}; color:#fff; font-weight:700; font-size:11px; padding:6px 10px; border-radius:8px; border:none;">
+            🎯 Select As Active Campus Hub
+          </button>
+        </div>
+      `;
+
+      marker.bindPopup(popupHtml, {
+        className: 'wb-custom-popup',
+        closeButton: true,
+        offset: [0, -18]
+      });
+
+      marker.on('click', () => {
+        setActiveCollegeId(college.id);
+      });
+
+      marker.on('popupopen', () => {
+        const btn = document.getElementById(`popup-select-${college.id}`);
+        if (btn) {
+          btn.onclick = () => {
+            if (onSelectCollege) onSelectCollege(college);
+            onClose();
+          };
+        }
+      });
+
+      markersRef.current[college.id] = marker;
+    });
+  }, [isOpen, filteredColleges, activeCollegeId, onSelectCollege, onClose]);
+
+  // Center on Active College when selected
+  const focusOnCollege = (college) => {
+    setActiveCollegeId(college.id);
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([college.lat, college.lng], 14, { duration: 0.9 });
+      const marker = markersRef.current[college.id];
+      if (marker) {
+        setTimeout(() => marker.openPopup(), 400);
+      }
+    }
+  };
+
+  // Zoom Controls
+  const handleZoomIn = () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.zoomIn();
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.zoomOut();
+    }
+  };
+
+  const handleResetWestBengalView = () => {
+    setSelectedZone('all');
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView(WB_MAP_CONFIG.center, WB_MAP_CONFIG.defaultZoom, {
+        animate: true,
+        duration: 0.8
+      });
+    }
+  };
+
+  const handleZoneSelect = (zoneId) => {
+    setSelectedZone(zoneId);
+    const zoneObj = WB_ZONES.find((z) => z.id === zoneId);
+    if (zoneObj && mapInstanceRef.current) {
+      if (zoneId === 'all') {
+        mapInstanceRef.current.setView(WB_MAP_CONFIG.center, WB_MAP_CONFIG.defaultZoom, {
+          animate: true,
+          duration: 0.8
+        });
+      } else {
+        mapInstanceRef.current.flyTo(zoneObj.center, zoneObj.zoom, { duration: 1.0 });
+      }
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-neutral-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-6xl max-h-[94vh] bg-[#0c1017] border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-white font-sans">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-neutral-950/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-6xl h-[92vh] max-h-[900px] bg-[#0c1017] border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-white font-sans">
         
         {/* =========================================================================
-            MODAL HEADER
+            HEADER BAR
            ========================================================================= */}
-        <div className="px-5 sm:px-6 py-3.5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+        <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between bg-white/[0.02] flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-2xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 flex-shrink-0">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -49,14 +352,14 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-display font-bold text-base sm:text-lg text-white tracking-wide">
-                  West Bengal Zonal Network & Campus Radar
+                  West Bengal Zonal Radar & Real Campus Map
                 </h2>
                 <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase">
-                  5 ZONES • MEDICAL & ENGINEERING HUBS
+                  5 ZONES • 23+ HUBS PINNED
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-neutral-400">
-                In-Campus senior peer delivery or out-of-campus regional E-Logistics across West Bengal
+                Interactive real-time map with verified senior handover points & regional E-Logistics
               </p>
             </div>
           </div>
@@ -74,447 +377,390 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
         </div>
 
         {/* =========================================================================
-            DUAL-DELIVERY LOGISTICS BANNER
+            DUAL DELIVERY BANNER
            ========================================================================= */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 px-5 sm:px-6 py-2.5 bg-white/[0.015] border-b border-white/5 text-xs">
-          {/* Mode 1: Senior In-Campus Handover */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 px-5 py-2 bg-white/[0.015] border-b border-white/5 text-xs flex-shrink-0">
           <div 
             onClick={() => setSelectedDeliveryMode('in-campus')}
-            className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-2.5 ${
+            className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 ${
               selectedDeliveryMode === 'in-campus'
-                ? 'bg-teal-950/30 border-teal-500/50 shadow-md shadow-teal-950/30'
+                ? 'bg-teal-950/30 border-teal-500/50 shadow-sm shadow-teal-950/30'
                 : 'bg-white/[0.02] border-white/5 hover:border-white/20'
             }`}
           >
-            <div className="w-7 h-7 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-6 h-6 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center flex-shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
               </svg>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-bold text-white text-[12px]">Inside Campus: Direct Senior Handover</span>
-                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono text-[9px] px-1.5 py-0.2 rounded font-bold uppercase">
+                <span className="font-bold text-white text-[11px]">In-Campus: Senior Handover</span>
+                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono text-[9px] px-1 rounded font-bold uppercase">
                   FREE (₹0 FEE)
                 </span>
+                <span className="text-neutral-400 text-[10px]">10-30 Mins</span>
               </div>
-              <p className="text-neutral-400 text-[11px] mt-0.5">
-                Senior students meet juniors inside campus (Library, Canteen, Dissection Hall lawn). 100% verified by CCTV & QR Token in 10-20 mins.
-              </p>
             </div>
           </div>
 
-          {/* Mode 2: Out-of-Campus E-Logistics */}
           <div 
             onClick={() => setSelectedDeliveryMode('out-of-campus')}
-            className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-2.5 ${
+            className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 ${
               selectedDeliveryMode === 'out-of-campus'
-                ? 'bg-indigo-950/30 border-indigo-500/50 shadow-md shadow-indigo-950/30'
+                ? 'bg-amber-950/30 border-amber-500/50 shadow-sm shadow-amber-950/30'
                 : 'bg-white/[0.02] border-white/5 hover:border-white/20'
             }`}
           >
-            <div className="w-7 h-7 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="1" y="3" width="15" height="13"></rect>
                 <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
                 <circle cx="5.5" cy="18.5" r="2.5"></circle>
                 <circle cx="18.5" cy="18.5" r="2.5"></circle>
               </svg>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-bold text-white text-[12px]">Outside Campus / Bulk: Regional E-Logistics</span>
-                <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono text-[9px] px-1.5 py-0.2 rounded font-bold uppercase">
-                  WB TRANSIT LOCKER
+                <span className="font-bold text-white text-[11px]">Out-of-Campus: Inter-Campus E-Logistics</span>
+                <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono text-[9px] px-1 rounded font-bold uppercase">
+                  ₹39 - ₹69
                 </span>
+                <span className="text-neutral-400 text-[10px]">24-48 Hours</span>
               </div>
-              <p className="text-neutral-400 text-[11px] mt-0.5">
-                For off-campus students, remote learners, or bulk orders (bone sets, drafter bundles, lab kits). Sealed tamper-proof delivery (24-48h).
-              </p>
             </div>
           </div>
         </div>
 
         {/* =========================================================================
-            STREAM TABS & ZONE FILTER BAR
+            FILTERS & SEARCH ROW
            ========================================================================= */}
-        <div className="px-5 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-white/[0.01]">
-          
-          {/* Stream Filter (Medical vs Engineering) */}
-          <div className="flex items-center gap-1 bg-white/10 p-1 rounded-full text-xs font-semibold">
-            {WB_STREAMS.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setSelectedStream(s.id)}
-                className={`px-3 py-1 rounded-full transition-all cursor-pointer text-xs ${
-                  selectedStream === s.id
-                    ? 'bg-teal-400 text-neutral-950 font-bold shadow'
-                    : 'text-neutral-300 hover:text-white'
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
+        <div className="px-5 py-2.5 bg-neutral-950/40 border-b border-white/5 flex flex-wrap items-center justify-between gap-2.5 text-xs flex-shrink-0">
+          {/* Stream Filter (Medical vs Engineering vs All) */}
+          <div className="flex items-center gap-1.5 bg-neutral-900/80 p-1 rounded-xl border border-white/10">
+            {WB_STREAMS.map((s) => {
+              const active = selectedStream === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedStream(s.id)}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] cursor-pointer ${
+                    active
+                      ? s.id === 'medical'
+                        ? 'bg-rose-600 text-white shadow-sm'
+                        : s.id === 'engineering'
+                        ? 'bg-teal-600 text-white shadow-sm'
+                        : 'bg-white/20 text-white'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Search Box */}
-          <div className="relative w-full sm:w-64">
-            <input
-              type="text"
-              placeholder="Search medical / engg college..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-full pl-9 pr-3 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-teal-400 transition"
-            />
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
             <svg
-              className="absolute left-3 top-2 text-neutral-400"
               width="14"
               height="14"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.2"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none"
             >
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-          </div>
-
-          {/* Zone Selector Chips */}
-          <div className="w-full flex flex-wrap items-center gap-1.5 pt-1 border-t border-white/5">
-            <span className="text-[10px] font-mono text-neutral-500 uppercase mr-1">Zone:</span>
-            {WB_ZONES.map((zone) => (
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search college, city, or district..."
+              className="w-full bg-neutral-900/90 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-teal-400 transition"
+            />
+            {searchQuery && (
               <button
-                key={zone.id}
-                onClick={() => setSelectedZone(zone.id)}
-                className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 ${
-                  selectedZone === zone.id
-                    ? 'bg-white text-black shadow font-bold'
-                    : 'bg-white/5 text-neutral-300 hover:text-white hover:bg-white/10'
-                }`}
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white text-xs"
               >
-                <span 
-                  className="w-1.5 h-1.5 rounded-full" 
-                  style={{ backgroundColor: zone.color }}
-                ></span>
-                <span>{zone.short}</span>
+                ✕
               </button>
-            ))}
+            )}
           </div>
         </div>
 
         {/* =========================================================================
-            MAIN MAP & DIRECTORY BODY (2 COLUMNS)
+            ZONAL SELECTION CHIPS
            ========================================================================= */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden min-h-[360px]">
-          
-          {/* -----------------------------------------------------------------------
-              LEFT COLUMN: INTERACTIVE WEST BENGAL SVG RADAR MAP (7 Cols)
-             ----------------------------------------------------------------------- */}
-          <div className="lg:col-span-7 bg-[#080b11] p-3 sm:p-5 flex flex-col justify-between relative border-b lg:border-b-0 lg:border-r border-white/10 overflow-y-auto">
-            
-            <div className="flex items-center justify-between text-xs text-neutral-400 mb-2">
-              <span className="font-mono uppercase tracking-wider text-[11px] text-teal-400 font-bold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-teal-400 animate-ping"></span>
-                LIVE RADAR • {filteredColleges.length} CAMPUSES MAPPED
-              </span>
-              <span className="text-[11px] hidden sm:inline text-neutral-400">
-                Click any pin to inspect senior handover points
-              </span>
-            </div>
-
-            {/* Stylized West Bengal SVG Radar Map */}
-            <div className="relative w-full aspect-[4/3] bg-gradient-to-b from-[#0e141f] to-[#080c14] rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center">
-              
-              {/* Grid Background */}
-              <div 
-                className="absolute inset-0 opacity-10 pointer-events-none"
+        <div className="px-5 py-2 flex items-center gap-1.5 overflow-x-auto border-b border-white/5 bg-neutral-900/30 flex-shrink-0 scrollbar-none">
+          <span className="text-[10px] font-mono text-neutral-500 uppercase font-bold mr-1 flex-shrink-0">
+            ZONES:
+          </span>
+          {WB_ZONES.map((zone) => {
+            const isSelected = selectedZone === zone.id;
+            return (
+              <button
+                key={zone.id}
+                onClick={() => handleZoneSelect(zone.id)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer border ${
+                  isSelected
+                    ? 'border-white/30 text-white shadow-sm'
+                    : 'border-transparent text-neutral-400 hover:text-white hover:bg-white/5'
+                }`}
                 style={{
-                  backgroundImage: 'radial-gradient(circle, #38bdf8 1px, transparent 1px)',
-                  backgroundSize: '24px 24px'
+                  backgroundColor: isSelected ? `${zone.color}30` : 'transparent',
+                  borderColor: isSelected ? zone.color : 'transparent'
                 }}
-              ></div>
-
-              {/* State Silhouette & Nodes */}
-              <svg 
-                viewBox="0 0 100 100" 
-                className="w-full h-full p-2 select-none"
-                style={{ filter: 'drop-shadow(0 0 25px rgba(20, 184, 166, 0.06))' }}
               >
-                {/* Stylized West Bengal State Boundary */}
-                <path
-                  d="M 52,8 Q 58,12 65,14 Q 68,22 62,28 Q 58,34 56,42 Q 54,48 48,54 Q 38,58 32,60 Q 30,64 36,66 Q 44,66 48,68 Q 40,74 42,80 Q 48,84 56,82 Q 62,80 60,74 Q 56,70 56,66 Q 60,62 58,52 Q 58,42 62,34 Q 64,26 62,18 Z"
-                  fill="rgba(255, 255, 255, 0.03)"
-                  stroke="rgba(255, 255, 255, 0.15)"
-                  strokeWidth="0.8"
-                  strokeDasharray="2 1"
-                />
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: zone.color }}
+                ></span>
+                {zone.short}
+              </button>
+            );
+          })}
+        </div>
 
-                {/* Regional Labels */}
-                <text x="64" y="14" fill="#ec4899" fontSize="2.8" fontWeight="bold" opacity="0.6">NORTH BENGAL</text>
-                <text x="22" y="60" fill="#f59e0b" fontSize="2.8" fontWeight="bold" opacity="0.6">DURGAPUR-BURDWAN</text>
-                <text x="65" y="65" fill="#10b981" fontSize="2.8" fontWeight="bold" opacity="0.6">KALYANI-AIIMS</text>
-                <text x="66" y="73" fill="#818cf8" fontSize="2.8" fontWeight="bold" opacity="0.7">KOLKATA METRO</text>
-                <text x="25" y="80" fill="#06b6d4" fontSize="2.8" fontWeight="bold" opacity="0.6">KHARAGPUR</text>
+        {/* =========================================================================
+            MAIN MAP CANVAS & INSPECTOR SPLIT
+           ========================================================================= */}
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+          
+          {/* REAL LEAFLET MAP CONTAINER */}
+          <div className="relative flex-1 h-[52vh] lg:h-full bg-[#070a0f] overflow-hidden">
+            
+            {/* The Actual Leaflet Canvas Div */}
+            <div
+              ref={mapContainerRef}
+              className="w-full h-full z-0 cursor-grab active:cursor-grabbing"
+              style={{ background: '#070a0f' }}
+            />
 
-                {/* College Pins */}
-                {filteredColleges.map((col) => {
-                  const isSelected = col.id === activeCollegeId;
-                  const isMedical = col.stream === 'medical';
-                  const zone = WB_ZONES.find((z) => z.id === col.zoneId) || WB_ZONES[1];
-                  const pinColor = isMedical ? '#10b981' : zone.color;
+            {/* =====================================================================
+                PROMINENT ZOOM + / - & RE-CENTER CONTROLS (HIGH VISIBILITY)
+               ===================================================================== */}
+            <div className="absolute top-4 left-4 z-30 flex flex-col gap-2">
+              <div className="bg-neutral-950/90 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl flex flex-col overflow-hidden p-1">
+                {/* CLEAR ZOOM IN (+) BUTTON */}
+                <button
+                  onClick={handleZoomIn}
+                  className="w-10 h-10 flex items-center justify-center text-white hover:bg-teal-500/20 hover:text-teal-300 active:scale-95 transition rounded-xl font-bold text-xl cursor-pointer border-b border-white/10"
+                  title="Zoom In (+)"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </button>
 
-                  return (
-                    <g
-                      key={col.id}
-                      onClick={() => setActiveCollegeId(col.id)}
-                      className="cursor-pointer group"
-                    >
-                      {/* Active Wave */}
-                      {isSelected && (
-                        <circle
-                          cx={col.coordinates.x}
-                          cy={col.coordinates.y}
-                          r="4"
-                          fill="none"
-                          stroke={pinColor}
-                          strokeWidth="0.6"
-                          className="animate-ping origin-center"
-                          opacity="0.8"
-                        />
-                      )}
-
-                      {/* Pin Node */}
-                      <circle
-                        cx={col.coordinates.x}
-                        cy={col.coordinates.y}
-                        r={isSelected ? "2.4" : (isMedical ? "1.8" : "1.4")}
-                        fill={pinColor}
-                        opacity={isSelected ? "1" : "0.85"}
-                        className="transition-all duration-300"
-                      />
-
-                      {/* Inner Dot */}
-                      <circle
-                        cx={col.coordinates.x}
-                        cy={col.coordinates.y}
-                        r={isSelected ? "1" : "0.6"}
-                        fill={isMedical ? "#042f2e" : "#ffffff"}
-                      />
-
-                      {/* Medical Cross marker inside pin */}
-                      {isMedical && (
-                        <text
-                          x={col.coordinates.x}
-                          y={col.coordinates.y + 0.6}
-                          fill="#ffffff"
-                          fontSize="1.4"
-                          fontWeight="bold"
-                          textAnchor="middle"
-                        >
-                          +
-                        </text>
-                      )}
-
-                      {/* Label Text */}
-                      <text
-                        x={col.coordinates.x + 2.2}
-                        y={col.coordinates.y + 0.8}
-                        fill={isSelected ? '#ffffff' : (isMedical ? '#34d399' : 'rgba(255, 255, 255, 0.65)')}
-                        fontSize={isSelected ? '2.4' : '1.8'}
-                        fontWeight={isSelected ? 'bold' : 'normal'}
-                        className="select-none pointer-events-none transition-all"
-                      >
-                        {col.shortName}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
-
-              {/* Map Legend */}
-              <div className="absolute bottom-2.5 left-2.5 bg-neutral-950/85 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-white/10 text-[9px] space-y-1">
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 flex items-center justify-center text-[7px] text-black font-black">+</span>
-                    Medical College
-                  </span>
-                  <span className="flex items-center gap-1 text-teal-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
-                    Engineering / Tech
-                  </span>
-                </div>
+                {/* CLEAR ZOOM OUT (-) BUTTON */}
+                <button
+                  onClick={handleZoomOut}
+                  className="w-10 h-10 flex items-center justify-center text-white hover:bg-teal-500/20 hover:text-teal-300 active:scale-95 transition rounded-xl font-bold text-xl cursor-pointer"
+                  title="Zoom Out (-)"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </button>
               </div>
 
-              <div className="absolute top-2.5 right-2.5 bg-black/70 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/10 text-[10px] text-neutral-400 font-mono">
-                {filteredColleges.length} Hubs Active
+              {/* FIT ALL WEST BENGAL BUTTON */}
+              <button
+                onClick={handleResetWestBengalView}
+                className="bg-neutral-950/90 hover:bg-neutral-900 backdrop-blur-md px-3 py-2 rounded-xl border border-white/20 text-neutral-300 hover:text-white text-[11px] font-bold shadow-xl flex items-center gap-1.5 transition cursor-pointer active:scale-95"
+                title="Fit All West Bengal"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-teal-400">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span>Fit WB</span>
+              </button>
+            </div>
+
+            {/* TOP RIGHT: MAP STYLE TOGGLE & PIN COUNT */}
+            <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+              {/* Map Theme Toggle (Dark vs Street) */}
+              <div className="bg-neutral-950/90 backdrop-blur-md rounded-xl border border-white/20 p-0.5 flex items-center text-[10px] font-semibold">
+                <button
+                  onClick={() => setMapStyle('dark')}
+                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                    mapStyle === 'dark' ? 'bg-teal-500/30 text-teal-300 border border-teal-500/40' : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  🌙 Dark Radar
+                </button>
+                <button
+                  onClick={() => setMapStyle('voyager')}
+                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                    mapStyle === 'voyager' ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40' : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  🗺️ Street View
+                </button>
+              </div>
+
+              {/* Counter Badge */}
+              <div className="bg-neutral-950/90 backdrop-blur-md px-3 py-1 rounded-xl border border-white/20 text-teal-400 text-[11px] font-mono font-bold shadow-lg hidden sm:flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+                <span>{filteredColleges.length} Hubs Found</span>
               </div>
             </div>
 
-            {/* Zonal Key Metrics */}
-            <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-white/5 text-center text-xs">
-              <div className="p-1.5 rounded-xl bg-white/[0.02]">
-                <div className="font-display font-bold text-sm text-white">20+ Hubs</div>
-                <div className="text-[10px] text-neutral-400">Medical & Engg Networks</div>
+            {/* BOTTOM MAP LEGEND */}
+            <div className="absolute bottom-4 left-4 z-30 bg-neutral-950/90 backdrop-blur-md px-3 py-2 rounded-2xl border border-white/20 shadow-xl flex items-center gap-3 text-[11px]">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-rose-500 border border-white shadow-sm"></span>
+                <span className="text-neutral-200 font-semibold">Medical College</span>
               </div>
-              <div className="p-1.5 rounded-xl bg-white/[0.02]">
-                <div className="font-display font-bold text-sm text-emerald-400">₹0 Fee</div>
-                <div className="text-[10px] text-neutral-400">Senior Peer Meetup</div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-teal-500 border border-white shadow-sm"></span>
+                <span className="text-neutral-200 font-semibold">Engineering Hub</span>
               </div>
-              <div className="p-1.5 rounded-xl bg-white/[0.02]">
-                <div className="font-display font-bold text-sm text-indigo-400">24-48h</div>
-                <div className="text-[10px] text-neutral-400">E-Logistics Bulk Transit</div>
+              <div className="hidden sm:flex items-center gap-1.5 pl-2 border-l border-white/10 text-neutral-400 text-[10px]">
+                <span>Click any pin to inspect</span>
               </div>
             </div>
 
           </div>
 
-          {/* -----------------------------------------------------------------------
-              RIGHT COLUMN: SELECTED COLLEGE DETAILS & LOGISTICS (5 Cols)
-             ----------------------------------------------------------------------- */}
-          <div className="lg:col-span-5 p-4 sm:p-5 flex flex-col justify-between bg-[#0b0e14] overflow-y-auto space-y-3.5">
+          {/* =========================================================================
+              SIDEBAR INSPECTOR & CAMPUS CARDS
+             ========================================================================= */}
+          <div className="w-full lg:w-96 bg-[#0e131d] border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col flex-shrink-0 overflow-hidden">
             
-            <div className="space-y-3">
-              {/* College Header Card */}
-              <div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase ${
+            {/* Active College Highlight Card */}
+            {activeCollege && (
+              <div className="p-4 border-b border-white/10 bg-white/[0.02]">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase border ${
                     activeCollege.stream === 'medical'
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                      : 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
+                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                      : 'bg-teal-500/20 text-teal-300 border-teal-500/40'
                   }`}>
-                    {activeCollege.stream === 'medical' ? '🩺 MEDICAL & HEALTH' : '⚙️ ENGINEERING & TECH'}
+                    {activeCollege.stream === 'medical' ? '🩺 Medical College' : '⚙️ Engineering Hub'}
                   </span>
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase bg-white/10 text-neutral-300">
-                    {activeCollege.district}, WB
+                  <span className="text-[11px] font-mono text-neutral-400">
+                    PIN {activeCollege.pincode}
                   </span>
                 </div>
 
-                <h3 className="font-display font-bold text-lg text-white mt-1">
+                <h3 className="font-display font-bold text-white text-base leading-tight mb-1">
                   {activeCollege.name}
                 </h3>
-                <p className="text-[11px] text-neutral-400">
-                  PIN: <span className="font-mono text-neutral-300">{activeCollege.pincode}</span> • City: <span className="text-neutral-300">{activeCollege.city}</span>
+
+                <p className="text-xs text-neutral-400 mb-3">
+                  📍 {activeCollege.city}, {activeCollege.district}
                 </p>
-              </div>
 
-              {/* Speciality Highlight */}
-              <p className="text-xs text-neutral-300 bg-white/[0.02] p-2.5 rounded-xl border border-white/5 leading-relaxed text-[11px]">
-                "{activeCollege.highlight}"
-              </p>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2 rounded-xl bg-white/5 border border-white/5">
-                  <span className="text-neutral-400 text-[10px]">Active Students</span>
-                  <div className="font-display font-bold text-white text-sm mt-0.5">
-                    {activeCollege.activeStudents.toLocaleString()}+ Verified
+                {/* Key Metrics */}
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="bg-neutral-900/80 p-2 rounded-xl border border-white/5">
+                    <span className="text-[10px] text-neutral-400 block font-mono">SENIOR MEETUP</span>
+                    <span className="text-xs font-bold text-emerald-400 flex items-center gap-1 mt-0.5">
+                      ⚡ {activeCollege.avgMeetupTime}
+                    </span>
+                  </div>
+                  <div className="bg-neutral-900/80 p-2 rounded-xl border border-white/5">
+                    <span className="text-[10px] text-neutral-400 block font-mono">STUDENT COMMUNITY</span>
+                    <span className="text-xs font-bold text-teal-400 flex items-center gap-1 mt-0.5">
+                      👥 {activeCollege.activeStudents}+ Verified
+                    </span>
                   </div>
                 </div>
-                <div className="p-2 rounded-xl bg-white/5 border border-white/5">
-                  <span className="text-neutral-400 text-[10px]">
-                    {activeCollege.stream === 'medical' ? 'Medical Items' : 'Semester Gear'}
+
+                {/* Safe Pickup Points */}
+                <div className="bg-neutral-900/60 p-2.5 rounded-xl border border-white/5 mb-3">
+                  <span className="text-[10px] font-mono text-neutral-400 uppercase font-bold block mb-1">
+                    Verified Safe Senior Handover Spots:
                   </span>
-                  <div className="font-display font-bold text-teal-400 text-sm mt-0.5">
-                    {activeCollege.listingsCount} Listed Live
+                  <div className="flex flex-wrap gap-1">
+                    {activeCollege.pickupPoints.map((spot, idx) => (
+                      <span
+                        key={idx}
+                        className="bg-white/5 border border-white/10 text-neutral-300 text-[10px] px-2 py-0.5 rounded-md"
+                      >
+                        ✓ {spot}
+                      </span>
+                    ))}
                   </div>
                 </div>
+
+                {/* College Highlight Note */}
+                <p className="text-[11px] text-neutral-300 italic bg-white/[0.02] p-2 rounded-lg border border-white/5 mb-3">
+                  "{activeCollege.highlight}"
+                </p>
+
+                {/* Select As Active Hub Button */}
+                <button
+                  onClick={() => {
+                    if (onSelectCollege) onSelectCollege(activeCollege);
+                    onClose();
+                  }}
+                  className={`w-full py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center justify-center gap-2 cursor-pointer ${
+                    activeCollege.stream === 'medical'
+                      ? 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white shadow-rose-950/50'
+                      : 'bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white shadow-teal-950/50'
+                  }`}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <span>Set As My Active Campus Hub</span>
+                </button>
+              </div>
+            )}
+
+            {/* List of Other Campuses in View */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
+              <div className="flex items-center justify-between px-1 text-[11px] font-mono text-neutral-400 uppercase">
+                <span>Campuses In This Zone ({filteredColleges.length})</span>
+                <span>Click to zoom</span>
               </div>
 
-              {/* Safe Pickup Hubs */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-neutral-200 flex items-center gap-1.5 text-[11px]">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-teal-400">
-                      <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-                      <circle cx="12" cy="10" r="3"/>
+              {filteredColleges.map((col) => {
+                const isSelected = col.id === activeCollegeId;
+                const isMed = col.stream === 'medical';
+                return (
+                  <div
+                    key={col.id}
+                    onClick={() => focusOnCollege(col)}
+                    className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                      isSelected
+                        ? isMed
+                          ? 'bg-rose-950/30 border-rose-500/50 shadow-sm'
+                          : 'bg-teal-950/30 border-teal-500/50 shadow-sm'
+                        : 'bg-white/[0.02] border-white/5 hover:border-white/20 hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-white text-[11px] flex-shrink-0 ${
+                        isMed ? 'bg-rose-500' : 'bg-teal-500'
+                      }`}>
+                        {isMed ? '🩺' : '⚙️'}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-white text-xs truncate">
+                          {col.shortName}
+                        </div>
+                        <div className="text-[10px] text-neutral-400 truncate">
+                          {col.city} • {col.avgMeetupTime} meetup
+                        </div>
+                      </div>
+                    </div>
+
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-500 flex-shrink-0">
+                      <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
-                    Verified In-Campus Pickup Spots:
-                  </span>
-                  <span className="text-[9px] text-emerald-400 font-mono font-bold">CCTV MONITORED</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                  {activeCollege.pickupPoints.map((spot, idx) => (
-                    <div 
-                      key={idx}
-                      className="text-[11px] text-neutral-300 bg-white/5 px-2 py-1 rounded-lg border border-white/5 flex items-center gap-1.5"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-teal-400 flex-shrink-0"></span>
-                      <span className="truncate">{spot}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Delivery Logistics Comparison */}
-              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-2 text-xs">
-                <div className="font-bold text-white flex items-center justify-between text-[11px]">
-                  <span>Logistics Protocol at this Campus:</span>
-                  <span className="text-[9px] font-mono text-emerald-400 uppercase">
-                    Direct Senior Handover Ready
-                  </span>
-                </div>
-
-                {selectedDeliveryMode === 'in-campus' ? (
-                  <div className="space-y-1.5 text-[11px]">
-                    <div className="flex items-center justify-between py-0.5 border-b border-white/5">
-                      <span className="text-neutral-400">Handover Mode:</span>
-                      <span className="font-bold text-emerald-400">Senior Student Meetup (In-Campus)</span>
-                    </div>
-                    <div className="flex items-center justify-between py-0.5 border-b border-white/5">
-                      <span className="text-neutral-400">Delivery Fee:</span>
-                      <span className="font-bold text-white">₹0.00 (100% Free Peer Delivery)</span>
-                    </div>
-                    <div className="flex items-center justify-between py-0.5 border-b border-white/5">
-                      <span className="text-neutral-400">Average Handover:</span>
-                      <span className="font-mono text-teal-300 font-bold">{activeCollege.avgMeetupTime}</span>
-                    </div>
-                    <div className="flex items-center justify-between py-0.5">
-                      <span className="text-neutral-400">Handshake Security:</span>
-                      <span className="text-neutral-300">QR Code Confirmation + CCTV Spot</span>
-                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-1.5 text-[11px]">
-                    <div className="flex items-center justify-between py-0.5 border-b border-white/5">
-                      <span className="text-neutral-400">Courier Mode:</span>
-                      <span className="font-bold text-indigo-400">Inter-District E-Logistics</span>
-                    </div>
-                    <div className="flex items-center justify-between py-0.5 border-b border-white/5">
-                      <span className="text-neutral-400">Shipping Fee:</span>
-                      <span className="font-bold text-white">₹39 - ₹49 (Free for bulk &gt; ₹499)</span>
-                    </div>
-                    <div className="flex items-center justify-between py-0.5 border-b border-white/5">
-                      <span className="text-neutral-400">Estimated Transit:</span>
-                      <span className="font-mono text-indigo-300 font-bold">24 - 48 Hours</span>
-                    </div>
-                    <div className="flex items-center justify-between py-0.5">
-                      <span className="text-neutral-400">Packaging:</span>
-                      <span className="text-neutral-300">Tamper-Evident Bag + OTP Tracking</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-            </div>
-
-            {/* Action Buttons */}
-            <div className="pt-2.5 border-t border-white/10 flex items-center gap-2">
-              <button
-                onClick={() => {
-                  if (onSelectCollege) onSelectCollege(activeCollege);
-                  onClose();
-                }}
-                className="flex-1 py-2 px-3 bg-teal-500 hover:bg-teal-400 text-neutral-950 font-bold rounded-xl text-xs transition text-center cursor-pointer shadow-md shadow-teal-500/20"
-              >
-                Set {activeCollege.shortName} as My Campus Hub
-              </button>
-              <button
-                onClick={onClose}
-                className="py-2 px-3 bg-white/10 hover:bg-white/20 text-neutral-200 font-bold rounded-xl text-xs transition cursor-pointer"
-              >
-                Close
-              </button>
+                );
+              })}
             </div>
 
           </div>

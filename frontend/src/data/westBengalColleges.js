@@ -1,19 +1,32 @@
 // West Bengal College Zonal Directory & Campus Logistics Data
 // Dual Delivery System: In-Campus Senior Handover vs Out-of-Campus E-Logistics
-// Includes premier Engineering, University, and Medical & Health Sciences Colleges
+// Real Geographic Coordinates (WGS84 Lat/Lng) for Leaflet Map Integration
+
+export const WB_MAP_CONFIG = {
+  center: [23.75, 87.85],
+  defaultZoom: 7,
+  minZoom: 6,
+  maxZoom: 18,
+  bounds: [
+    [21.4, 85.8],
+    [27.4, 90.1]
+  ]
+};
 
 export const WB_STREAMS = [
   { id: "all", label: "All Campuses", icon: "school" },
   { id: "medical", label: "🩺 Medical Colleges (MBBS / Dental)", icon: "cross" },
-  { id: "engineering", label: "⚙️ Engineering & Tech", icon: "cpu" },
+  { id: "engineering", label: "⚙️ Engineering & Tech", icon: "cpu" }
 ];
 
 export const WB_ZONES = [
   {
     id: "all",
     name: "All West Bengal",
-    short: "ALL WB",
+    short: "All WB",
     color: "#14b8a6", // teal
+    center: [23.75, 87.85],
+    zoom: 7,
     description: "State-wide collegiate exchange network spanning 5 major academic clusters."
   },
   {
@@ -21,40 +34,92 @@ export const WB_ZONES = [
     name: "Kolkata Metro & South Bengal",
     short: "Kolkata Metro",
     color: "#6366f1", // indigo
+    center: [22.555, 88.375],
+    zoom: 12,
     districts: ["Kolkata", "Howrah", "South 24 Parganas", "North 24 Parganas"],
-    description: "High-density medical & engineering zone with direct 10-min senior walk-deliveries."
+    description: "High-density medical & engineering zone with direct 10-min senior walk-deliveries.",
+    polygon: [
+      [22.66, 88.28],
+      [22.65, 88.46],
+      [22.56, 88.47],
+      [22.46, 88.44],
+      [22.45, 88.32],
+      [22.52, 88.27],
+      [22.66, 88.28]
+    ]
   },
   {
     id: "kharagpur-midnapore",
     name: "Kharagpur & Midnapore Zone",
     short: "Kharagpur / Medinipur",
     color: "#06b6d4", // cyan
+    center: [22.35, 87.55],
+    zoom: 10,
     districts: ["Paschim Medinipur", "Purba Medinipur", "Jhargram"],
-    description: "Sprawling university, IIT, and medical college campuses with bicycle courier networks."
+    description: "Sprawling university, IIT, and medical college campuses with bicycle courier networks.",
+    polygon: [
+      [22.55, 87.15],
+      [22.52, 87.80],
+      [22.15, 88.18],
+      [21.90, 88.00],
+      [22.10, 87.10],
+      [22.55, 87.15]
+    ]
   },
   {
     id: "durgapur-burdwan",
     name: "Durgapur, Burdwan & Bankura Zone",
     short: "Durgapur / Burdwan",
     color: "#f59e0b", // amber
+    center: [23.40, 87.35],
+    zoom: 9,
     districts: ["Paschim Bardhaman", "Purba Bardhaman", "Bankura", "Birbhum"],
-    description: "Industrial & healthcare corridor with regional E-logistics transit hubs."
+    description: "Industrial & healthcare corridor with regional E-logistics transit hubs.",
+    polygon: [
+      [23.85, 86.85],
+      [23.75, 87.95],
+      [23.15, 88.05],
+      [23.05, 87.00],
+      [23.45, 86.80],
+      [23.85, 86.85]
+    ]
   },
   {
     id: "kalyani-nadia",
     name: "Kalyani & Nadia Academic Zone",
     short: "Kalyani / Nadia",
     color: "#10b981", // emerald
+    center: [22.98, 88.46],
+    zoom: 12,
     districts: ["Nadia", "North 24 Parganas"],
-    description: "National medical (AIIMS) & engineering township with centralized safe pickup points."
+    description: "National medical (AIIMS) & engineering township with centralized safe pickup points.",
+    polygon: [
+      [23.08, 88.38],
+      [23.06, 88.58],
+      [22.91, 88.56],
+      [22.92, 88.40],
+      [23.08, 88.38]
+    ]
   },
   {
     id: "north-bengal",
-    name: "North Bengal (Siliguri & Malda)",
+    name: "North Bengal (Siliguri, Jalpaiguri & Malda)",
     short: "North Bengal",
     color: "#ec4899", // pink
+    center: [26.10, 88.40],
+    zoom: 8,
     districts: ["Darjeeling", "Jalpaiguri", "Malda", "Alipurduar", "Cooch Behar"],
-    description: "Northern regional medical & engineering hubs connected via inter-campus express dispatch."
+    description: "Northern regional medical & engineering hubs connected via inter-campus express dispatch.",
+    polygon: [
+      [27.15, 88.15],
+      [27.05, 88.95],
+      [26.40, 89.15],
+      [24.85, 88.35],
+      [24.85, 87.95],
+      [25.60, 87.90],
+      [26.65, 88.10],
+      [27.15, 88.15]
+    ]
   }
 ];
 
@@ -73,7 +138,8 @@ export const WB_COLLEGES = [
     city: "Kolkata",
     district: "Kolkata",
     pincode: "700073",
-    coordinates: { x: 56, y: 70.8 },
+    lat: 22.5744,
+    lng: 88.3629,
     activeStudents: 2200,
     listingsCount: 280,
     avgMeetupTime: "10 mins",
@@ -92,7 +158,8 @@ export const WB_COLLEGES = [
     city: "Kolkata",
     district: "Kolkata",
     pincode: "700020",
-    coordinates: { x: 55, y: 72 },
+    lat: 22.5393,
+    lng: 88.3433,
     activeStudents: 2100,
     listingsCount: 235,
     avgMeetupTime: "12 mins",
@@ -111,7 +178,8 @@ export const WB_COLLEGES = [
     city: "Kolkata",
     district: "Kolkata",
     pincode: "700014",
-    coordinates: { x: 56.5, y: 71.2 },
+    lat: 22.5647,
+    lng: 88.3712,
     activeStudents: 1950,
     listingsCount: 210,
     avgMeetupTime: "10 mins",
@@ -130,7 +198,8 @@ export const WB_COLLEGES = [
     city: "Kolkata",
     district: "Kolkata",
     pincode: "700004",
-    coordinates: { x: 56.2, y: 69.8 },
+    lat: 22.6042,
+    lng: 88.3747,
     activeStudents: 1850,
     listingsCount: 190,
     avgMeetupTime: "12 mins",
@@ -149,7 +218,8 @@ export const WB_COLLEGES = [
     city: "Kolkata",
     district: "Kolkata",
     pincode: "700014",
-    coordinates: { x: 57, y: 72.5 },
+    lat: 22.5411,
+    lng: 88.3694,
     activeStudents: 1600,
     listingsCount: 175,
     avgMeetupTime: "14 mins",
@@ -170,7 +240,8 @@ export const WB_COLLEGES = [
     city: "Kolkata",
     district: "Kolkata",
     pincode: "700032",
-    coordinates: { x: 55, y: 73.2 },
+    lat: 22.4988,
+    lng: 88.3715,
     activeStudents: 4200,
     listingsCount: 318,
     avgMeetupTime: "12 mins",
@@ -189,7 +260,8 @@ export const WB_COLLEGES = [
     city: "Howrah",
     district: "Howrah",
     pincode: "711103",
-    coordinates: { x: 52, y: 71 },
+    lat: 22.5552,
+    lng: 88.3065,
     activeStudents: 3100,
     listingsCount: 245,
     avgMeetupTime: "15 mins",
@@ -208,7 +280,8 @@ export const WB_COLLEGES = [
     city: "Kolkata",
     district: "Kolkata",
     pincode: "700009",
-    coordinates: { x: 56.2, y: 70.3 },
+    lat: 22.5786,
+    lng: 88.3725,
     activeStudents: 3600,
     listingsCount: 198,
     avgMeetupTime: "10 mins",
@@ -227,7 +300,8 @@ export const WB_COLLEGES = [
     city: "Kolkata",
     district: "Kolkata",
     pincode: "700107",
-    coordinates: { x: 58, y: 73.8 },
+    lat: 22.5180,
+    lng: 88.4190,
     activeStudents: 2800,
     listingsCount: 220,
     avgMeetupTime: "14 mins",
@@ -246,7 +320,8 @@ export const WB_COLLEGES = [
     city: "Kolkata",
     district: "North 24 Parganas",
     pincode: "700091",
-    coordinates: { x: 57.5, y: 71.8 },
+    lat: 22.5697,
+    lng: 88.4331,
     activeStudents: 2500,
     listingsCount: 185,
     avgMeetupTime: "10 mins",
@@ -265,7 +340,8 @@ export const WB_COLLEGES = [
     city: "Kolkata",
     district: "North 24 Parganas",
     pincode: "700091",
-    coordinates: { x: 58.2, y: 71.2 },
+    lat: 22.5794,
+    lng: 88.4297,
     activeStudents: 3400,
     listingsCount: 260,
     avgMeetupTime: "11 mins",
@@ -288,7 +364,8 @@ export const WB_COLLEGES = [
     city: "Kharagpur",
     district: "Paschim Medinipur",
     pincode: "721302",
-    coordinates: { x: 44, y: 77 },
+    lat: 22.3149,
+    lng: 87.3105,
     activeStudents: 7800,
     listingsCount: 640,
     avgMeetupTime: "15 mins",
@@ -307,7 +384,8 @@ export const WB_COLLEGES = [
     city: "Medinipur",
     district: "Paschim Medinipur",
     pincode: "721101",
-    coordinates: { x: 45, y: 75.5 },
+    lat: 22.4206,
+    lng: 87.3195,
     activeStudents: 1450,
     listingsCount: 160,
     avgMeetupTime: "12 mins",
@@ -326,7 +404,8 @@ export const WB_COLLEGES = [
     city: "Haldia",
     district: "Purba Medinipur",
     pincode: "721657",
-    coordinates: { x: 53, y: 81 },
+    lat: 22.0620,
+    lng: 88.0833,
     activeStudents: 2200,
     listingsCount: 165,
     avgMeetupTime: "16 mins",
@@ -349,7 +428,8 @@ export const WB_COLLEGES = [
     city: "Bardhaman",
     district: "Purba Bardhaman",
     pincode: "713104",
-    coordinates: { x: 48, y: 64.5 },
+    lat: 23.2384,
+    lng: 87.8542,
     activeStudents: 1750,
     listingsCount: 195,
     avgMeetupTime: "12 mins",
@@ -368,7 +448,8 @@ export const WB_COLLEGES = [
     city: "Bankura",
     district: "Bankura",
     pincode: "722102",
-    coordinates: { x: 36, y: 68 },
+    lat: 23.2185,
+    lng: 87.0673,
     activeStudents: 1400,
     listingsCount: 150,
     avgMeetupTime: "15 mins",
@@ -387,7 +468,8 @@ export const WB_COLLEGES = [
     city: "Durgapur",
     district: "Paschim Bardhaman",
     pincode: "713209",
-    coordinates: { x: 38, y: 64 },
+    lat: 23.5484,
+    lng: 87.2931,
     activeStudents: 3900,
     listingsCount: 310,
     avgMeetupTime: "14 mins",
@@ -406,7 +488,8 @@ export const WB_COLLEGES = [
     city: "Asansol",
     district: "Paschim Bardhaman",
     pincode: "713305",
-    coordinates: { x: 31, y: 61 },
+    lat: 23.7082,
+    lng: 86.9458,
     activeStudents: 1800,
     listingsCount: 140,
     avgMeetupTime: "16 mins",
@@ -429,7 +512,8 @@ export const WB_COLLEGES = [
     city: "Kalyani",
     district: "Nadia",
     pincode: "741245",
-    coordinates: { x: 57.8, y: 65.5 },
+    lat: 22.9734,
+    lng: 88.4616,
     activeStudents: 1500,
     listingsCount: 185,
     avgMeetupTime: "12 mins",
@@ -448,7 +532,8 @@ export const WB_COLLEGES = [
     city: "Kalyani",
     district: "Nadia",
     pincode: "741235",
-    coordinates: { x: 58.2, y: 66.2 },
+    lat: 22.9868,
+    lng: 88.4357,
     activeStudents: 1300,
     listingsCount: 160,
     avgMeetupTime: "11 mins",
@@ -467,7 +552,8 @@ export const WB_COLLEGES = [
     city: "Kalyani",
     district: "Nadia",
     pincode: "741235",
-    coordinates: { x: 57, y: 66.8 },
+    lat: 22.9886,
+    lng: 88.4497,
     activeStudents: 1950,
     listingsCount: 180,
     avgMeetupTime: "12 mins",
@@ -486,7 +572,8 @@ export const WB_COLLEGES = [
     city: "Mohanpur",
     district: "Nadia",
     pincode: "741246",
-    coordinates: { x: 59, y: 67 },
+    lat: 22.9620,
+    lng: 88.5290,
     activeStudents: 1600,
     listingsCount: 135,
     avgMeetupTime: "14 mins",
@@ -509,7 +596,8 @@ export const WB_COLLEGES = [
     city: "Siliguri",
     district: "Darjeeling",
     pincode: "734012",
-    coordinates: { x: 59.5, y: 19.5 },
+    lat: 26.7020,
+    lng: 88.3789,
     activeStudents: 1800,
     listingsCount: 195,
     avgMeetupTime: "14 mins",
@@ -528,7 +616,8 @@ export const WB_COLLEGES = [
     city: "Malda",
     district: "Malda",
     pincode: "732101",
-    coordinates: { x: 52, y: 44 },
+    lat: 25.0069,
+    lng: 88.1408,
     activeStudents: 1250,
     listingsCount: 140,
     avgMeetupTime: "15 mins",
@@ -547,7 +636,8 @@ export const WB_COLLEGES = [
     city: "Jalpaiguri",
     district: "Jalpaiguri",
     pincode: "735102",
-    coordinates: { x: 62, y: 22 },
+    lat: 26.5444,
+    lng: 88.7188,
     activeStudents: 1700,
     listingsCount: 155,
     avgMeetupTime: "15 mins",
@@ -566,7 +656,8 @@ export const WB_COLLEGES = [
     city: "Siliguri",
     district: "Darjeeling",
     pincode: "734013",
-    coordinates: { x: 57, y: 17 },
+    lat: 26.7090,
+    lng: 88.3533,
     activeStudents: 2900,
     listingsCount: 210,
     avgMeetupTime: "17 mins",
@@ -585,7 +676,8 @@ export const WB_COLLEGES = [
     city: "Siliguri",
     district: "Darjeeling",
     pincode: "734009",
-    coordinates: { x: 58, y: 18.5 },
+    lat: 26.7825,
+    lng: 88.3762,
     activeStudents: 1850,
     listingsCount: 130,
     avgMeetupTime: "15 mins",
