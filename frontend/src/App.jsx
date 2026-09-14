@@ -273,7 +273,7 @@ const decreaseCartQuantity = (id) => {
              ========================================================================= */}
       <div className="fixed top-6 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
         <header
-          className={`floating-pill text-white px-4 sm:px-5 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-3 sm:gap-5 pointer-events-auto whitespace-nowrap ${isLoggedIn ? "w-[calc(100%-2rem)] max-w-[1800px]" : "w-fit max-w-[calc(100%-2rem)]"}`}
+          className={`floating-pill text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-3 sm:gap-6 pointer-events-auto whitespace-nowrap ${isLoggedIn ? "w-full max-w-7xl mx-auto" : "w-fit max-w-[calc(100%-2rem)]"}`}
         >
           {/* Minimal Geometric Logo */}
           <button
@@ -305,22 +305,22 @@ const decreaseCartQuantity = (id) => {
 
           {/* Navigation Links inside Pill */}
           {isLoggedIn ? (
-            <div className="hidden sm:flex items-center gap-3 bg-white/10 p-1.5 rounded-full text-xs font-semibold flex-shrink-0">
+            <div className="hidden sm:flex items-center gap-1 sm:gap-1.5 bg-white/10 p-1 rounded-full text-xs font-semibold flex-shrink-0">
               <button
                 onClick={() => navigateTo("home")}
-                className={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "home" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${currentRoute === "home" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 HOME
               </button>
               <button
                 onClick={() => navigateTo("marketplace")}
-                className={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "marketplace" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${currentRoute === "marketplace" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 MARKETPLACE
               </button>
               <button
                 onClick={() => navigateTo("sell")}
-                className={`px-4 py-1.5 rounded-full transition-all ${
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${
                   currentRoute === "sell"
                     ? "bg-white text-black font-bold shadow"
                     : "text-neutral-300 hover:text-white"
@@ -330,35 +330,29 @@ const decreaseCartQuantity = (id) => {
               </button>
               <button
                 onClick={() => navigateTo("services")}
-                className={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${currentRoute === "services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 SKILLS
               </button>
               <button
                 onClick={() => navigateTo("course")}
-                className={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "course" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${currentRoute === "course" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 COURSES
               </button>
               <button
-                onClick={() => navigateTo("overview")}
-                className={`px-4 py-1.5 rounded-full transition-all ${currentRoute === "overview" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                onClick={() => navigateTo("orders")}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${
+                  currentRoute === "orders"
+                    ? "bg-white font-bold text-black shadow"
+                    : "text-neutral-300 hover:text-white"
+                }`}
               >
-                OVERVIEW
+                ORDERS
               </button>
-                <button
-  onClick={() => navigateTo("orders")}
-  className={`rounded-full px-4 py-1.5 transition-all ${
-    currentRoute === "orders"
-      ? "bg-white font-bold text-black shadow"
-      : "text-neutral-300 hover:text-white"
-  }`}
->
-  ORDERS
-</button>
               <button
                 onClick={() => navigateTo("wishlist")}
-                className={`px-4 py-1.5 rounded-full transition-all ${
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${
                   currentRoute === "wishlist"
                     ? "bg-white text-black font-bold shadow"
                     : "text-neutral-300 hover:text-white"
@@ -410,8 +404,8 @@ const decreaseCartQuantity = (id) => {
             )}
 
             {isLoggedIn ? (
-              <div className="flex items-center gap-2">
-                <div className="hidden md:flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-full text-xs text-neutral-300 border border-white/10">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                <div className="hidden lg:flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-full text-xs text-neutral-300 border border-white/10 flex-shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                   <span className="font-mono text-[11px] text-white font-bold">
                     {currentUser?.roll || "2024CS1089"}
@@ -419,7 +413,7 @@ const decreaseCartQuantity = (id) => {
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="text-xs bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white px-3 py-1 rounded-full font-medium transition flex items-center gap-1.5 cursor-pointer border border-white/15"
+                  className="text-xs bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white px-3 py-1.5 rounded-full font-medium transition flex items-center gap-1.5 cursor-pointer border border-white/15 flex-shrink-0 whitespace-nowrap"
                   title="Sign Out"
                 >
                   <svg
@@ -436,7 +430,7 @@ const decreaseCartQuantity = (id) => {
                     <polyline points="16 17 21 12 16 7"></polyline>
                     <line x1="21" y1="12" x2="9" y2="12"></line>
                   </svg>
-                  <span className="hidden md:inline">Sign Out</span>
+                  <span>Sign Out</span>
                 </button>
               </div>
             ) : (
@@ -486,12 +480,14 @@ const decreaseCartQuantity = (id) => {
       {/* Mobile / Hamburger Overlay Menu */}
       {navMenuOpen && (
         <div className="fixed inset-0 z-40 bg-neutral-950/80 backdrop-blur-md flex flex-col justify-center items-center gap-6 text-white text-2xl font-display font-bold animate-in fade-in duration-200">
-          <button
-            onClick={() => navigateTo("overview")}
-            className="hover:text-neutral-400"
-          >
-            OVERVIEW / ABOUT
-          </button>
+          {!isLoggedIn && (
+            <button
+              onClick={() => navigateTo("overview")}
+              className="hover:text-neutral-400"
+            >
+              OVERVIEW / ABOUT
+            </button>
+          )}
           {isLoggedIn ? (
             <>
               <button
