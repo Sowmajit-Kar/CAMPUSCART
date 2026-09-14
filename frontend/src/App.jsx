@@ -12,6 +12,7 @@ import CourseSection from "./components/CourseView";
 import CartFullView from "./components/CartView";
 import WishlistView from "./components/WishListView.jsx";
 import OrderHistory from "./components/OrderHistory";
+import WestBengalMapModal from "./components/WestBengalMapModal";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -30,6 +31,8 @@ function App() {
     }
   });
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [selectedCampusHub, setSelectedCampusHub] = useState(null);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [activeChat, setActiveChat] = useState(null);
@@ -374,7 +377,33 @@ const decreaseCartQuantity = (id) => {
           )}
 
           {/* Right Menu / Cart & User Actions */}
-          <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+            {/* West Bengal College Zonal Map Button (Left of Cart) */}
+            <button
+              onClick={() => setIsMapOpen(true)}
+              className="relative text-xs text-neutral-300 hover:text-white flex items-center gap-1.5 font-semibold transition px-2.5 py-1.5 rounded-full hover:bg-white/10 flex-shrink-0 cursor-pointer border border-white/10 hover:border-teal-400/40"
+              title="West Bengal College Zonal Map & Logistics"
+            >
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-teal-400"
+              >
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                <line x1="8" y1="2" x2="8" y2="18"></line>
+                <line x1="16" y1="6" x2="16" y2="22"></line>
+              </svg>
+              <span className="hidden xl:inline text-[11px] font-mono text-teal-300 font-bold uppercase tracking-wider">
+                {selectedCampusHub ? selectedCampusHub.shortName : "WB MAP"}
+              </span>
+            </button>
+
             {isLoggedIn && (
               <button
                 onClick={() => navigateTo("cart")}
@@ -1090,6 +1119,16 @@ const decreaseCartQuantity = (id) => {
           </div>
         </div>
       )}
+
+      {/* WEST BENGAL COLLEGE ZONAL MAP MODAL */}
+      <WestBengalMapModal
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        onSelectCollege={(college) => {
+          setSelectedCampusHub(college);
+          showToast(`📍 Active Campus Hub set to: ${college.name}`);
+        }}
+      />
 
       {/* TOAST POPUP */}
       {toastMsg && (
