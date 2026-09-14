@@ -3,17 +3,19 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { WB_MAP_CONFIG, WB_ZONES, WB_COLLEGES, WB_STREAMS, DELIVERY_MODES } from '../data/westBengalColleges';
 
-// Map Tile Providers
+// 100% Free Public Map Tile Providers (ZERO API KEY REQUIRED, NO WATERMARKS)
 const TILE_LAYERS = {
   dark: {
-    name: 'Night Radar',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap'
+    name: 'Dark Radar',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+    maxZoom: 16
   },
-  voyager: {
-    name: 'Street View',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap'
+  street: {
+    name: 'OpenStreetMap',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
   }
 };
 
@@ -23,8 +25,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCollegeId, setActiveCollegeId] = useState('cmc-kolkata');
   const [selectedDeliveryMode, setSelectedDeliveryMode] = useState('in-campus'); // 'in-campus' | 'out-of-campus'
-  const [mapStyle, setMapStyle] = useState('dark'); // 'dark' | 'voyager'
-  const [currentZoom, setCurrentZoom] = useState(WB_MAP_CONFIG.defaultZoom);
+  const [mapStyle, setMapStyle] = useState('dark'); // 'dark' | 'street'
 
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -48,9 +49,14 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
     });
   }, [selectedZone, selectedStream, searchQuery]);
 
+  // Keep active college valid in filtered list
   const activeCollege = useMemo(() => {
-    return WB_COLLEGES.find((c) => c.id === activeCollegeId) || filteredColleges[0] || WB_COLLEGES[0];
-  }, [activeCollegeId, filteredColleges]);
+    const found = WB_COLLEGES.find((c) => c.id === activeCollegeId);
+    if (found && (selectedZone === 'all' || found.zoneId === selectedZone)) {
+      return found;
+    }
+    return filteredColleges[0] || WB_COLLEGES[0];
+  }, [activeCollegeId, filteredColleges, selectedZone]);
 
   // Handle escape key
   useEffect(() => {
@@ -64,7 +70,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
   }, [isOpen, onClose]);
 
   // =========================================================================
-  // LEAFLET MAP INITIALIZATION & LIFECYCLE
+  // LEAFLET MAP INITIALIZATION (FREE TILES, NO API KEY)
   // =========================================================================
   useEffect(() => {
     if (!isOpen || !mapContainerRef.current) return;
@@ -81,22 +87,16 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
       zoom: WB_MAP_CONFIG.defaultZoom,
       minZoom: WB_MAP_CONFIG.minZoom,
       maxZoom: WB_MAP_CONFIG.maxZoom,
-      zoomControl: false, // We will use custom large high-contrast + / - buttons
+      zoomControl: false, // Using our compact custom + / - buttons
       attributionControl: false
     });
 
-    // Add Base Tile Layer
+    // Add Base Tile Layer (ESRI Dark Canvas or OpenStreetMap - NO API KEY)
     const tileConfig = TILE_LAYERS[mapStyle];
     tileLayerRef.current = L.tileLayer(tileConfig.url, {
-      maxZoom: 19,
-      subdomains: 'abcd',
+      maxZoom: tileConfig.maxZoom,
       attribution: tileConfig.attribution
     }).addTo(map);
-
-    // Track zoom state
-    map.on('zoomend', () => {
-      setCurrentZoom(map.getZoom());
-    });
 
     mapInstanceRef.current = map;
 
@@ -116,10 +116,11 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
     };
   }, [isOpen]);
 
-  // Switch Tile Style (Dark vs Voyager Street)
+  // Switch Tile Style (Dark vs OpenStreetMap Street)
   useEffect(() => {
     if (!mapInstanceRef.current || !tileLayerRef.current) return;
-    tileLayerRef.current.setUrl(TILE_LAYERS[mapStyle].url);
+    const tileConfig = TILE_LAYERS[mapStyle];
+    tileLayerRef.current.setUrl(tileConfig.url);
   }, [mapStyle]);
 
   // =========================================================================
@@ -142,10 +143,10 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
       const isSelected = selectedZone === zone.id;
       const poly = L.polygon(zone.polygon, {
         color: zone.color,
-        weight: isSelected ? 3 : 1.8,
-        dashArray: isSelected ? 'none' : '5, 8',
+        weight: isSelected ? 3 : 1.5,
+        dashArray: isSelected ? 'none' : '4, 6',
         fillColor: zone.color,
-        fillOpacity: isSelected ? 0.22 : 0.08,
+        fillOpacity: isSelected ? 0.25 : 0.07,
         smoothFactor: 1
       }).addTo(map);
 
@@ -156,8 +157,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
       );
 
       poly.on('click', () => {
-        setSelectedZone(zone.id);
-        map.flyTo(zone.center, zone.zoom, { duration: 0.8 });
+        handleZoneSelect(zone.id);
       });
 
       polygonsRef.current[zone.id] = poly;
@@ -178,45 +178,39 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
     markersRef.current = {};
 
     filteredColleges.forEach((college) => {
-      const isSelected = college.id === activeCollegeId;
+      const isSelected = college.id === activeCollege?.id;
       const isMedical = college.stream === 'medical';
 
-      // Stream colors & accents
-      const primaryColor = isMedical ? '#f43f5e' : '#14b8a6'; // Rose red for Medical, Teal for Engg
+      const primaryColor = isMedical ? '#f43f5e' : '#14b8a6';
       const badgeBg = isMedical ? 'bg-rose-500' : 'bg-teal-500';
       const borderGlow = isSelected
-        ? `border-white ring-4 ${isMedical ? 'ring-rose-500/60' : 'ring-teal-500/60'} scale-110`
-        : `border-white/80 ${isMedical ? 'hover:ring-rose-400/40' : 'hover:ring-teal-400/40'} hover:scale-105`;
+        ? `border-white ring-4 ${isMedical ? 'ring-rose-500/70' : 'ring-teal-500/70'} scale-110`
+        : `border-white/90 ${isMedical ? 'hover:ring-rose-400/50' : 'hover:ring-teal-400/50'} hover:scale-105`;
 
-      // Custom HTML Pin via Leaflet divIcon
       const pinHtml = `
         <div class="relative flex flex-col items-center group cursor-pointer transition-all duration-200 ${isSelected ? 'z-50' : 'z-20'}">
-          <!-- Pulse animation on selected pin -->
           ${
             isSelected
               ? `<span class="absolute -top-1 -left-1 w-8 h-8 rounded-full ${badgeBg} animate-ping opacity-75"></span>`
               : ''
           }
           
-          <!-- Pin Beacon Body -->
-          <div class="relative w-7 h-7 rounded-full ${badgeBg} text-white shadow-xl flex items-center justify-center border-2 ${borderGlow} transition-transform">
+          <div class="relative w-6 h-6 sm:w-7 sm:h-7 rounded-full ${badgeBg} text-white shadow-xl flex items-center justify-center border-2 ${borderGlow} transition-transform">
             ${
               isMedical
-                ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z"/></svg>`
-                : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>`
+                ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z"/></svg>`
+                : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>`
             }
           </div>
 
-          <!-- Pin Bottom Needle -->
           <div class="w-1.5 h-1.5 bg-white rotate-45 -mt-0.5 shadow-sm"></div>
 
-          <!-- Floating Name Label Pill -->
-          <div class="mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-tight whitespace-nowrap shadow-lg border transition-all ${
+          <div class="mt-0.5 px-1.5 py-0.5 rounded-md text-[9.5px] font-bold tracking-tight whitespace-nowrap shadow-md border transition-all ${
             isSelected
               ? `${isMedical ? 'bg-rose-950/95 border-rose-500 text-rose-200' : 'bg-teal-950/95 border-teal-500 text-teal-200'} scale-105`
               : 'bg-neutral-900/90 border-white/20 text-neutral-200 group-hover:bg-neutral-800'
           }">
-            <span class="mr-1">${isMedical ? '🩺' : '⚙️'}</span>${college.shortName}
+            <span class="mr-0.5">${isMedical ? '🩺' : '⚙️'}</span>${college.shortName}
           </div>
         </div>
       `;
@@ -224,8 +218,8 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
       const customIcon = L.divIcon({
         className: 'wb-college-pin-wrapper',
         html: pinHtml,
-        iconSize: [120, 52],
-        iconAnchor: [60, 28]
+        iconSize: [110, 48],
+        iconAnchor: [55, 24]
       });
 
       const marker = L.marker([college.lat, college.lng], {
@@ -234,7 +228,6 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
         zIndexOffset: isSelected ? 1000 : 100
       }).addTo(map);
 
-      // Popup on click
       const popupHtml = `
         <div style="font-family: sans-serif; color: #fff; background: #0f172a; padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.15); min-width: 220px;">
           <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
@@ -249,7 +242,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
             📍 ${college.city}, ${college.district} • PIN ${college.pincode}
           </div>
           <div style="font-size:11px; color:#38bdf8; background:rgba(56,189,248,0.1); padding:4px 8px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(56,189,248,0.2);">
-            ⚡ Direct Senior Handover: <b>${college.avgMeetupTime}</b>
+            ⚡ Senior Handover: <b>${college.avgMeetupTime}</b>
           </div>
           <button id="popup-select-${college.id}" style="width:100%; cursor:pointer; background:${primaryColor}; color:#fff; font-weight:700; font-size:11px; padding:6px 10px; border-radius:8px; border:none;">
             🎯 Select As Active Campus Hub
@@ -260,7 +253,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
       marker.bindPopup(popupHtml, {
         className: 'wb-custom-popup',
         closeButton: true,
-        offset: [0, -18]
+        offset: [0, -16]
       });
 
       marker.on('click', () => {
@@ -279,7 +272,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
 
       markersRef.current[college.id] = marker;
     });
-  }, [isOpen, filteredColleges, activeCollegeId, onSelectCollege, onClose]);
+  }, [isOpen, filteredColleges, activeCollege, onSelectCollege, onClose]);
 
   // Center on Active College when selected
   const focusOnCollege = (college) => {
@@ -288,12 +281,12 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
       mapInstanceRef.current.flyTo([college.lat, college.lng], 14, { duration: 0.9 });
       const marker = markersRef.current[college.id];
       if (marker) {
-        setTimeout(() => marker.openPopup(), 400);
+        setTimeout(() => marker.openPopup(), 350);
       }
     }
   };
 
-  // Zoom Controls
+  // Sleek, compact zoom handlers
   const handleZoomIn = () => {
     if (mapInstanceRef.current) {
       mapInstanceRef.current.zoomIn();
@@ -316,8 +309,20 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
     }
   };
 
+  // Zone selection with automatic campus focusing & flyTo
   const handleZoneSelect = (zoneId) => {
     setSelectedZone(zoneId);
+
+    // Auto-select first college in this zone so sidebar updates instantly
+    const collegesInZone = WB_COLLEGES.filter((c) => {
+      const matchesStream = selectedStream === 'all' || c.stream === selectedStream;
+      return (zoneId === 'all' || c.zoneId === zoneId) && matchesStream;
+    });
+
+    if (collegesInZone.length > 0) {
+      setActiveCollegeId(collegesInZone[0].id);
+    }
+
     const zoneObj = WB_ZONES.find((z) => z.id === zoneId);
     if (zoneObj && mapInstanceRef.current) {
       if (zoneId === 'all') {
@@ -359,7 +364,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-neutral-400">
-                Interactive real-time map with verified senior handover points & regional E-Logistics
+                Real interactive map with senior handover safe spots & regional E-Logistics (Zero API keys required)
               </p>
             </div>
           </div>
@@ -433,7 +438,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
         </div>
 
         {/* =========================================================================
-            FILTERS & SEARCH ROW
+            STREAM TABS & SEARCH BAR
            ========================================================================= */}
         <div className="px-5 py-2.5 bg-neutral-950/40 border-b border-white/5 flex flex-wrap items-center justify-between gap-2.5 text-xs flex-shrink-0">
           {/* Stream Filter (Medical vs Engineering vs All) */}
@@ -444,7 +449,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
                 <button
                   key={s.id}
                   onClick={() => setSelectedStream(s.id)}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg font-semibold transition-all text-[11px] cursor-pointer ${
                     active
                       ? s.id === 'medical'
                         ? 'bg-rose-600 text-white shadow-sm'
@@ -478,7 +483,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search college, city, or district..."
+              placeholder="Search medical / engineering college or city..."
               className="w-full bg-neutral-900/90 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-teal-400 transition"
             />
             {searchQuery && (
@@ -493,36 +498,49 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
         </div>
 
         {/* =========================================================================
-            ZONAL SELECTION CHIPS
+            PROMINENT ZONE SELECTOR (CHIPS + DROPDOWN SELECTOR)
            ========================================================================= */}
-        <div className="px-5 py-2 flex items-center gap-1.5 overflow-x-auto border-b border-white/5 bg-neutral-900/30 flex-shrink-0 scrollbar-none">
-          <span className="text-[10px] font-mono text-neutral-500 uppercase font-bold mr-1 flex-shrink-0">
-            ZONES:
-          </span>
-          {WB_ZONES.map((zone) => {
-            const isSelected = selectedZone === zone.id;
-            return (
-              <button
-                key={zone.id}
-                onClick={() => handleZoneSelect(zone.id)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer border ${
-                  isSelected
-                    ? 'border-white/30 text-white shadow-sm'
-                    : 'border-transparent text-neutral-400 hover:text-white hover:bg-white/5'
-                }`}
-                style={{
-                  backgroundColor: isSelected ? `${zone.color}30` : 'transparent',
-                  borderColor: isSelected ? zone.color : 'transparent'
-                }}
-              >
-                <span
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: zone.color }}
-                ></span>
-                {zone.short}
-              </button>
-            );
-          })}
+        <div className="px-5 py-2 flex flex-wrap items-center justify-between gap-2 border-b border-white/5 bg-[#090d14] flex-shrink-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+            <span className="text-[10px] font-mono text-neutral-400 uppercase font-bold mr-1 flex-shrink-0">
+              SELECT ZONE:
+            </span>
+            {WB_ZONES.map((zone) => {
+              const isSelected = selectedZone === zone.id;
+              return (
+                <button
+                  key={zone.id}
+                  onClick={() => handleZoneSelect(zone.id)}
+                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                    isSelected
+                      ? 'bg-teal-400 text-neutral-950 font-bold border-teal-300 shadow-md shadow-teal-950/40'
+                      : 'bg-white/5 text-neutral-300 border-white/10 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: isSelected ? '#0f172a' : zone.color }}
+                  ></span>
+                  <span>{zone.short}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Quick Zone Dropdown for Mobile / Direct Selection */}
+          <div className="hidden sm:flex items-center gap-1.5">
+            <select
+              value={selectedZone}
+              onChange={(e) => handleZoneSelect(e.target.value)}
+              className="bg-neutral-900 border border-white/15 text-neutral-200 text-[11px] font-medium rounded-lg px-2.5 py-1 focus:outline-none focus:border-teal-400 cursor-pointer"
+            >
+              {WB_ZONES.map((z) => (
+                <option key={z.id} value={z.id} className="bg-neutral-900 text-white">
+                  {z.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* =========================================================================
@@ -531,7 +549,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
           
           {/* REAL LEAFLET MAP CONTAINER */}
-          <div className="relative flex-1 h-[52vh] lg:h-full bg-[#070a0f] overflow-hidden">
+          <div className="relative flex-1 h-[50vh] lg:h-full bg-[#070a0f] overflow-hidden">
             
             {/* The Actual Leaflet Canvas Div */}
             <div
@@ -541,41 +559,36 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
             />
 
             {/* =====================================================================
-                PROMINENT ZOOM + / - & RE-CENTER CONTROLS (HIGH VISIBILITY)
+                COMPACT, SLEEK ZOOM (+ / -) & RE-CENTER CONTROLS (FIXED SIZE)
                ===================================================================== */}
-            <div className="absolute top-4 left-4 z-30 flex flex-col gap-2">
-              <div className="bg-neutral-950/90 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl flex flex-col overflow-hidden p-1">
-                {/* CLEAR ZOOM IN (+) BUTTON */}
+            <div className="absolute top-3 left-3 z-30 flex flex-col gap-1.5">
+              <div className="bg-[#0e131d]/90 backdrop-blur-md rounded-xl border border-white/20 shadow-lg flex flex-col overflow-hidden">
+                {/* COMPACT ZOOM IN (+) BUTTON */}
                 <button
                   onClick={handleZoomIn}
-                  className="w-10 h-10 flex items-center justify-center text-white hover:bg-teal-500/20 hover:text-teal-300 active:scale-95 transition rounded-xl font-bold text-xl cursor-pointer border-b border-white/10"
+                  className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-white hover:bg-teal-500/25 hover:text-teal-300 active:scale-95 transition text-base font-bold cursor-pointer border-b border-white/10"
                   title="Zoom In (+)"
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
+                  +
                 </button>
 
-                {/* CLEAR ZOOM OUT (-) BUTTON */}
+                {/* COMPACT ZOOM OUT (-) BUTTON */}
                 <button
                   onClick={handleZoomOut}
-                  className="w-10 h-10 flex items-center justify-center text-white hover:bg-teal-500/20 hover:text-teal-300 active:scale-95 transition rounded-xl font-bold text-xl cursor-pointer"
+                  className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-white hover:bg-teal-500/25 hover:text-teal-300 active:scale-95 transition text-base font-bold cursor-pointer"
                   title="Zoom Out (-)"
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
+                  &minus;
                 </button>
               </div>
 
-              {/* FIT ALL WEST BENGAL BUTTON */}
+              {/* COMPACT FIT WB BUTTON */}
               <button
                 onClick={handleResetWestBengalView}
-                className="bg-neutral-950/90 hover:bg-neutral-900 backdrop-blur-md px-3 py-2 rounded-xl border border-white/20 text-neutral-300 hover:text-white text-[11px] font-bold shadow-xl flex items-center gap-1.5 transition cursor-pointer active:scale-95"
+                className="bg-[#0e131d]/90 hover:bg-neutral-800 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/20 text-neutral-300 hover:text-white text-[10.5px] font-semibold shadow-md flex items-center gap-1 transition cursor-pointer active:scale-95"
                 title="Fit All West Bengal"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-teal-400">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-teal-400">
                   <circle cx="12" cy="12" r="10"></circle>
                   <circle cx="12" cy="12" r="3"></circle>
                 </svg>
@@ -584,21 +597,21 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
             </div>
 
             {/* TOP RIGHT: MAP STYLE TOGGLE & PIN COUNT */}
-            <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
-              {/* Map Theme Toggle (Dark vs Street) */}
-              <div className="bg-neutral-950/90 backdrop-blur-md rounded-xl border border-white/20 p-0.5 flex items-center text-[10px] font-semibold">
+            <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
+              {/* Map Theme Toggle (Zero API Keys) */}
+              <div className="bg-[#0e131d]/90 backdrop-blur-md rounded-xl border border-white/20 p-0.5 flex items-center text-[10px] font-semibold shadow-md">
                 <button
                   onClick={() => setMapStyle('dark')}
-                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                  className={`px-2 py-1 rounded-lg transition cursor-pointer ${
                     mapStyle === 'dark' ? 'bg-teal-500/30 text-teal-300 border border-teal-500/40' : 'text-neutral-400 hover:text-white'
                   }`}
                 >
                   🌙 Dark Radar
                 </button>
                 <button
-                  onClick={() => setMapStyle('voyager')}
-                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-                    mapStyle === 'voyager' ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40' : 'text-neutral-400 hover:text-white'
+                  onClick={() => setMapStyle('street')}
+                  className={`px-2 py-1 rounded-lg transition cursor-pointer ${
+                    mapStyle === 'street' ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40' : 'text-neutral-400 hover:text-white'
                   }`}
                 >
                   🗺️ Street View
@@ -606,31 +619,31 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
               </div>
 
               {/* Counter Badge */}
-              <div className="bg-neutral-950/90 backdrop-blur-md px-3 py-1 rounded-xl border border-white/20 text-teal-400 text-[11px] font-mono font-bold shadow-lg hidden sm:flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-                <span>{filteredColleges.length} Hubs Found</span>
+              <div className="bg-[#0e131d]/90 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/20 text-teal-400 text-[10.5px] font-mono font-bold shadow-md hidden sm:flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
+                <span>{filteredColleges.length} Campuses</span>
               </div>
             </div>
 
             {/* BOTTOM MAP LEGEND */}
-            <div className="absolute bottom-4 left-4 z-30 bg-neutral-950/90 backdrop-blur-md px-3 py-2 rounded-2xl border border-white/20 shadow-xl flex items-center gap-3 text-[11px]">
+            <div className="absolute bottom-3 left-3 z-30 bg-[#0e131d]/90 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-white/20 shadow-md flex items-center gap-2.5 text-[10px]">
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-rose-500 border border-white shadow-sm"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 border border-white shadow-sm"></span>
                 <span className="text-neutral-200 font-semibold">Medical College</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-teal-500 border border-white shadow-sm"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-teal-500 border border-white shadow-sm"></span>
                 <span className="text-neutral-200 font-semibold">Engineering Hub</span>
               </div>
-              <div className="hidden sm:flex items-center gap-1.5 pl-2 border-l border-white/10 text-neutral-400 text-[10px]">
-                <span>Click any pin to inspect</span>
+              <div className="hidden sm:flex items-center gap-1 pl-1.5 border-l border-white/10 text-neutral-400 text-[9.5px]">
+                <span>Click pin to inspect</span>
               </div>
             </div>
 
           </div>
 
           {/* =========================================================================
-              SIDEBAR INSPECTOR & CAMPUS CARDS
+              SIDEBAR INSPECTOR & CAMPUS CARDS (UPDATES WITH ZONE)
              ========================================================================= */}
           <div className="w-full lg:w-96 bg-[#0e131d] border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col flex-shrink-0 overflow-hidden">
             
@@ -645,7 +658,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
                   }`}>
                     {activeCollege.stream === 'medical' ? '🩺 Medical College' : '⚙️ Engineering Hub'}
                   </span>
-                  <span className="text-[11px] font-mono text-neutral-400">
+                  <span className="text-[10px] font-mono text-neutral-400">
                     PIN {activeCollege.pincode}
                   </span>
                 </div>
@@ -654,20 +667,20 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
                   {activeCollege.name}
                 </h3>
 
-                <p className="text-xs text-neutral-400 mb-3">
+                <p className="text-xs text-neutral-400 mb-2.5">
                   📍 {activeCollege.city}, {activeCollege.district}
                 </p>
 
                 {/* Key Metrics */}
-                <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="grid grid-cols-2 gap-2 mb-2.5">
                   <div className="bg-neutral-900/80 p-2 rounded-xl border border-white/5">
-                    <span className="text-[10px] text-neutral-400 block font-mono">SENIOR MEETUP</span>
+                    <span className="text-[9.5px] text-neutral-400 block font-mono">SENIOR MEETUP</span>
                     <span className="text-xs font-bold text-emerald-400 flex items-center gap-1 mt-0.5">
                       ⚡ {activeCollege.avgMeetupTime}
                     </span>
                   </div>
                   <div className="bg-neutral-900/80 p-2 rounded-xl border border-white/5">
-                    <span className="text-[10px] text-neutral-400 block font-mono">STUDENT COMMUNITY</span>
+                    <span className="text-[9.5px] text-neutral-400 block font-mono">STUDENT BODY</span>
                     <span className="text-xs font-bold text-teal-400 flex items-center gap-1 mt-0.5">
                       👥 {activeCollege.activeStudents}+ Verified
                     </span>
@@ -675,7 +688,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
                 </div>
 
                 {/* Safe Pickup Points */}
-                <div className="bg-neutral-900/60 p-2.5 rounded-xl border border-white/5 mb-3">
+                <div className="bg-neutral-900/60 p-2.5 rounded-xl border border-white/5 mb-2.5">
                   <span className="text-[10px] font-mono text-neutral-400 uppercase font-bold block mb-1">
                     Verified Safe Senior Handover Spots:
                   </span>
@@ -683,7 +696,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
                     {activeCollege.pickupPoints.map((spot, idx) => (
                       <span
                         key={idx}
-                        className="bg-white/5 border border-white/10 text-neutral-300 text-[10px] px-2 py-0.5 rounded-md"
+                        className="bg-white/5 border border-white/10 text-neutral-300 text-[9.5px] px-1.5 py-0.5 rounded-md"
                       >
                         ✓ {spot}
                       </span>
@@ -692,7 +705,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
                 </div>
 
                 {/* College Highlight Note */}
-                <p className="text-[11px] text-neutral-300 italic bg-white/[0.02] p-2 rounded-lg border border-white/5 mb-3">
+                <p className="text-[10.5px] text-neutral-300 italic bg-white/[0.02] p-2 rounded-lg border border-white/5 mb-3 leading-relaxed">
                   "{activeCollege.highlight}"
                 </p>
 
@@ -719,13 +732,17 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
 
             {/* List of Other Campuses in View */}
             <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
-              <div className="flex items-center justify-between px-1 text-[11px] font-mono text-neutral-400 uppercase">
-                <span>Campuses In This Zone ({filteredColleges.length})</span>
+              <div className="flex items-center justify-between px-1 text-[10.5px] font-mono text-neutral-400 uppercase">
+                <span>
+                  {selectedZone === 'all'
+                    ? `All WB Campuses (${filteredColleges.length})`
+                    : `In this Zone (${filteredColleges.length})`}
+                </span>
                 <span>Click to zoom</span>
               </div>
 
               {filteredColleges.map((col) => {
-                const isSelected = col.id === activeCollegeId;
+                const isSelected = col.id === activeCollege?.id;
                 const isMed = col.stream === 'medical';
                 return (
                   <div
