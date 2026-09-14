@@ -75,23 +75,20 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
   useEffect(() => {
     if (!isOpen || !mapContainerRef.current) return;
 
-    // Destroy existing map instance if any
     if (mapInstanceRef.current) {
       mapInstanceRef.current.remove();
       mapInstanceRef.current = null;
     }
 
-    // Initialize Leaflet Map
     const map = L.map(mapContainerRef.current, {
       center: WB_MAP_CONFIG.center,
       zoom: WB_MAP_CONFIG.defaultZoom,
       minZoom: WB_MAP_CONFIG.minZoom,
       maxZoom: WB_MAP_CONFIG.maxZoom,
-      zoomControl: false, // Using our compact custom + / - buttons
+      zoomControl: false,
       attributionControl: false
     });
 
-    // Add Base Tile Layer (ESRI Dark Canvas or OpenStreetMap - NO API KEY)
     const tileConfig = TILE_LAYERS[mapStyle];
     tileLayerRef.current = L.tileLayer(tileConfig.url, {
       maxZoom: tileConfig.maxZoom,
@@ -100,7 +97,6 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
 
     mapInstanceRef.current = map;
 
-    // Delayed invalidateSize to ensure full modal dimensions are applied
     const timer = setTimeout(() => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.invalidateSize();
@@ -130,13 +126,11 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // Clear old zone polygons
     Object.values(polygonsRef.current).forEach((layer) => {
       if (map.hasLayer(layer)) map.removeLayer(layer);
     });
     polygonsRef.current = {};
 
-    // Render zone boundary polygons
     WB_ZONES.forEach((zone) => {
       if (!zone.polygon) return;
 
@@ -150,7 +144,6 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
         smoothFactor: 1
       }).addTo(map);
 
-      // Zonal Tooltip
       poly.bindTooltip(
         `<div style="font-weight:700; font-size:11px; color:${zone.color};">📍 ${zone.name}</div>`,
         { sticky: true, className: 'zone-boundary-tooltip' }
@@ -171,7 +164,6 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // Remove old markers
     Object.values(markersRef.current).forEach((marker) => {
       if (map.hasLayer(marker)) map.removeLayer(marker);
     });
@@ -313,7 +305,6 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
   const handleZoneSelect = (zoneId) => {
     setSelectedZone(zoneId);
 
-    // Auto-select first college in this zone so sidebar updates instantly
     const collegesInZone = WB_COLLEGES.filter((c) => {
       const matchesStream = selectedStream === 'all' || c.stream === selectedStream;
       return (zoneId === 'all' || c.zoneId === zoneId) && matchesStream;
@@ -340,7 +331,7 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-neutral-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-6xl h-[92vh] max-h-[900px] bg-[#0c1017] border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-white font-sans">
+      <div className="relative w-full max-w-6xl h-[94vh] max-h-[900px] bg-[#0c1017] border border-white/10 rounded-3xl shadow-2xl flex flex-col min-h-0 overflow-hidden text-white font-sans">
         
         {/* =========================================================================
             HEADER BAR
@@ -441,7 +432,6 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
             STREAM TABS & SEARCH BAR
            ========================================================================= */}
         <div className="px-5 py-2.5 bg-neutral-950/40 border-b border-white/5 flex flex-wrap items-center justify-between gap-2.5 text-xs flex-shrink-0">
-          {/* Stream Filter (Medical vs Engineering vs All) */}
           <div className="flex items-center gap-1.5 bg-neutral-900/80 p-1 rounded-xl border border-white/10">
             {WB_STREAMS.map((s) => {
               const active = selectedStream === s.id;
@@ -465,7 +455,6 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
             })}
           </div>
 
-          {/* Search Box */}
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <svg
               width="14"
@@ -527,7 +516,6 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
             })}
           </div>
 
-          {/* Quick Zone Dropdown for Mobile / Direct Selection */}
           <div className="hidden sm:flex items-center gap-1.5">
             <select
               value={selectedZone}
@@ -546,10 +534,10 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
         {/* =========================================================================
             MAIN MAP CANVAS & INSPECTOR SPLIT
            ========================================================================= */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+        <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden relative">
           
           {/* REAL LEAFLET MAP CONTAINER */}
-          <div className="relative flex-1 h-[50vh] lg:h-full bg-[#070a0f] overflow-hidden">
+          <div className="relative flex-1 min-h-[260px] h-full bg-[#070a0f] overflow-hidden">
             
             {/* The Actual Leaflet Canvas Div */}
             <div
@@ -558,12 +546,9 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
               style={{ background: '#070a0f' }}
             />
 
-            {/* =====================================================================
-                COMPACT, SLEEK ZOOM (+ / -) & RE-CENTER CONTROLS (FIXED SIZE)
-               ===================================================================== */}
+            {/* COMPACT, SLEEK ZOOM (+ / -) & RE-CENTER CONTROLS */}
             <div className="absolute top-3 left-3 z-30 flex flex-col gap-1.5">
               <div className="bg-[#0e131d]/90 backdrop-blur-md rounded-xl border border-white/20 shadow-lg flex flex-col overflow-hidden">
-                {/* COMPACT ZOOM IN (+) BUTTON */}
                 <button
                   onClick={handleZoomIn}
                   className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-white hover:bg-teal-500/25 hover:text-teal-300 active:scale-95 transition text-base font-bold cursor-pointer border-b border-white/10"
@@ -571,8 +556,6 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
                 >
                   +
                 </button>
-
-                {/* COMPACT ZOOM OUT (-) BUTTON */}
                 <button
                   onClick={handleZoomOut}
                   className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-white hover:bg-teal-500/25 hover:text-teal-300 active:scale-95 transition text-base font-bold cursor-pointer"
@@ -582,7 +565,6 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
                 </button>
               </div>
 
-              {/* COMPACT FIT WB BUTTON */}
               <button
                 onClick={handleResetWestBengalView}
                 className="bg-[#0e131d]/90 hover:bg-neutral-800 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/20 text-neutral-300 hover:text-white text-[10.5px] font-semibold shadow-md flex items-center gap-1 transition cursor-pointer active:scale-95"
@@ -598,7 +580,6 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
 
             {/* TOP RIGHT: MAP STYLE TOGGLE & PIN COUNT */}
             <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
-              {/* Map Theme Toggle (Zero API Keys) */}
               <div className="bg-[#0e131d]/90 backdrop-blur-md rounded-xl border border-white/20 p-0.5 flex items-center text-[10px] font-semibold shadow-md">
                 <button
                   onClick={() => setMapStyle('dark')}
@@ -618,7 +599,6 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
                 </button>
               </div>
 
-              {/* Counter Badge */}
               <div className="bg-[#0e131d]/90 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/20 text-teal-400 text-[10.5px] font-mono font-bold shadow-md hidden sm:flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
                 <span>{filteredColleges.length} Campuses</span>
@@ -643,142 +623,177 @@ export default function WestBengalMapModal({ isOpen, onClose, onSelectCollege })
           </div>
 
           {/* =========================================================================
-              SIDEBAR INSPECTOR & CAMPUS CARDS (UPDATES WITH ZONE)
+              SIDEBAR INSPECTOR WITH VISIBLE SLIDING BAR & PINNED ACTION BUTTON
              ========================================================================= */}
-          <div className="w-full lg:w-96 bg-[#0e131d] border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col flex-shrink-0 overflow-hidden">
+          <div className="w-full lg:w-96 bg-[#0c1017] border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col flex-shrink-0 min-h-0 overflow-hidden">
             
-            {/* Active College Highlight Card */}
-            {activeCollege && (
-              <div className="p-4 border-b border-white/10 bg-white/[0.02]">
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase border ${
-                    activeCollege.stream === 'medical'
-                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                      : 'bg-teal-500/20 text-teal-300 border-teal-500/40'
-                  }`}>
-                    {activeCollege.stream === 'medical' ? '🩺 Medical College' : '⚙️ Engineering Hub'}
-                  </span>
-                  <span className="text-[10px] font-mono text-neutral-400">
-                    PIN {activeCollege.pincode}
-                  </span>
-                </div>
+            {/* Sidebar Top Header */}
+            <div className="px-4 py-2.5 border-b border-white/10 bg-white/[0.02] flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-white">
+                  Campus Hub & Directory
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-neutral-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
+                {filteredColleges.length} in view
+              </span>
+            </div>
 
-                <h3 className="font-display font-bold text-white text-base leading-tight mb-1">
-                  {activeCollege.name}
-                </h3>
-
-                <p className="text-xs text-neutral-400 mb-2.5">
-                  📍 {activeCollege.city}, {activeCollege.district}
-                </p>
-
-                {/* Key Metrics */}
-                <div className="grid grid-cols-2 gap-2 mb-2.5">
-                  <div className="bg-neutral-900/80 p-2 rounded-xl border border-white/5">
-                    <span className="text-[9.5px] text-neutral-400 block font-mono">SENIOR MEETUP</span>
-                    <span className="text-xs font-bold text-emerald-400 flex items-center gap-1 mt-0.5">
-                      ⚡ {activeCollege.avgMeetupTime}
+            {/* SCROLLABLE BODY WITH SLIDING BAR */}
+            <div className="flex-1 min-h-0 overflow-y-auto campus-sliding-bar p-3.5 space-y-3.5">
+              
+              {/* Active Selected College Details (e.g. IIT Kharagpur) */}
+              {activeCollege && (
+                <div className="space-y-3 bg-white/[0.015] p-3.5 rounded-2xl border border-white/5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase border ${
+                      activeCollege.stream === 'medical'
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                        : 'bg-teal-500/20 text-teal-300 border-teal-500/40'
+                    }`}>
+                      {activeCollege.stream === 'medical' ? '🩺 Medical College' : '⚙️ Engineering Hub'}
+                    </span>
+                    <span className="text-[10px] font-mono text-neutral-400">
+                      PIN {activeCollege.pincode}
                     </span>
                   </div>
-                  <div className="bg-neutral-900/80 p-2 rounded-xl border border-white/5">
-                    <span className="text-[9.5px] text-neutral-400 block font-mono">STUDENT BODY</span>
-                    <span className="text-xs font-bold text-teal-400 flex items-center gap-1 mt-0.5">
-                      👥 {activeCollege.activeStudents}+ Verified
-                    </span>
-                  </div>
-                </div>
 
-                {/* Safe Pickup Points */}
-                <div className="bg-neutral-900/60 p-2.5 rounded-xl border border-white/5 mb-2.5">
-                  <span className="text-[10px] font-mono text-neutral-400 uppercase font-bold block mb-1">
-                    Verified Safe Senior Handover Spots:
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {activeCollege.pickupPoints.map((spot, idx) => (
-                      <span
-                        key={idx}
-                        className="bg-white/5 border border-white/10 text-neutral-300 text-[9.5px] px-1.5 py-0.5 rounded-md"
-                      >
-                        ✓ {spot}
+                  <div>
+                    <h3 className="font-display font-bold text-white text-base leading-snug">
+                      {activeCollege.name}
+                    </h3>
+                    <p className="text-xs text-neutral-400 mt-0.5">
+                      📍 {activeCollege.city}, {activeCollege.district}
+                    </p>
+                  </div>
+
+                  {/* Key Metrics */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-neutral-900/90 p-2.5 rounded-xl border border-white/5">
+                      <span className="text-[9px] text-neutral-400 block font-mono uppercase">SENIOR MEETUP</span>
+                      <span className="text-xs font-bold text-emerald-400 flex items-center gap-1 mt-0.5">
+                        ⚡ {activeCollege.avgMeetupTime}
                       </span>
-                    ))}
+                    </div>
+                    <div className="bg-neutral-900/90 p-2.5 rounded-xl border border-white/5">
+                      <span className="text-[9px] text-neutral-400 block font-mono uppercase">STUDENT BODY</span>
+                      <span className="text-xs font-bold text-teal-400 flex items-center gap-1 mt-0.5">
+                        👥 {activeCollege.activeStudents.toLocaleString()}+ Verified
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Safe Pickup Points */}
+                  <div className="bg-neutral-900/70 p-2.5 rounded-xl border border-white/5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-neutral-400 uppercase font-bold">
+                        Verified Senior Handover Spots:
+                      </span>
+                      <span className="text-[9px] font-mono text-emerald-400 font-bold uppercase">CCTV Safe</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {activeCollege.pickupPoints.map((spot, idx) => (
+                        <span
+                          key={idx}
+                          className="bg-white/5 border border-white/10 text-neutral-300 text-[10px] px-2 py-0.5 rounded-md"
+                        >
+                          ✓ {spot}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* College Highlight Note */}
+                  <p className="text-[10.5px] text-neutral-300 italic bg-white/[0.02] p-2.5 rounded-xl border border-white/5 leading-relaxed">
+                    "{activeCollege.highlight}"
+                  </p>
+                </div>
+              )}
+
+              {/* List of Other Campuses in View */}
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between px-1 text-[10.5px] font-mono text-neutral-400 uppercase font-bold">
+                  <span>
+                    {selectedZone === 'all'
+                      ? `All Campuses (${filteredColleges.length})`
+                      : `In this Zone (${filteredColleges.length})`}
+                  </span>
+                  <span className="text-[9.5px] text-teal-400">Click to focus</span>
                 </div>
 
-                {/* College Highlight Note */}
-                <p className="text-[10.5px] text-neutral-300 italic bg-white/[0.02] p-2 rounded-lg border border-white/5 mb-3 leading-relaxed">
-                  "{activeCollege.highlight}"
-                </p>
+                <div className="space-y-1.5">
+                  {filteredColleges.map((col) => {
+                    const isSelected = col.id === activeCollege?.id;
+                    const isMed = col.stream === 'medical';
+                    return (
+                      <div
+                        key={col.id}
+                        onClick={() => focusOnCollege(col)}
+                        className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? isMed
+                              ? 'bg-rose-950/40 border-rose-500 text-white shadow-sm'
+                              : 'bg-teal-950/40 border-teal-500 text-white shadow-sm'
+                            : 'bg-white/[0.02] border-white/5 hover:border-white/20 hover:bg-white/[0.05] text-neutral-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-white text-[11px] flex-shrink-0 ${
+                            isMed ? 'bg-rose-500' : 'bg-teal-500'
+                          }`}>
+                            {isMed ? '🩺' : '⚙️'}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-white text-xs truncate">
+                              {col.shortName}
+                            </div>
+                            <div className="text-[10px] text-neutral-400 truncate">
+                              {col.city} • {col.avgMeetupTime} meetup
+                            </div>
+                          </div>
+                        </div>
 
-                {/* Select As Active Hub Button */}
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {isSelected && (
+                            <span className="text-[9px] font-mono font-bold uppercase bg-teal-500/20 text-teal-300 border border-teal-500/30 px-1.5 py-0.5 rounded">
+                              ACTIVE
+                            </span>
+                          )}
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-500">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                          </svg>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+
+            {/* PINNED ALWAYS-VISIBLE ACTION FOOTER (NEVER CUT OFF) */}
+            {activeCollege && (
+              <div className="p-3 border-t border-white/10 bg-[#0a0e16] flex-shrink-0 shadow-2xl">
                 <button
                   onClick={() => {
                     if (onSelectCollege) onSelectCollege(activeCollege);
                     onClose();
                   }}
-                  className={`w-full py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs shadow-lg transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] ${
                     activeCollege.stream === 'medical'
-                      ? 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white shadow-rose-950/50'
-                      : 'bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white shadow-teal-950/50'
+                      ? 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white shadow-rose-950/60'
+                      : 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-neutral-950 shadow-teal-950/60'
                   }`}
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
                   </svg>
-                  <span>Set As My Active Campus Hub</span>
+                  <span>Set {activeCollege.shortName} As Active Hub</span>
                 </button>
               </div>
             )}
-
-            {/* List of Other Campuses in View */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
-              <div className="flex items-center justify-between px-1 text-[10.5px] font-mono text-neutral-400 uppercase">
-                <span>
-                  {selectedZone === 'all'
-                    ? `All WB Campuses (${filteredColleges.length})`
-                    : `In this Zone (${filteredColleges.length})`}
-                </span>
-                <span>Click to zoom</span>
-              </div>
-
-              {filteredColleges.map((col) => {
-                const isSelected = col.id === activeCollege?.id;
-                const isMed = col.stream === 'medical';
-                return (
-                  <div
-                    key={col.id}
-                    onClick={() => focusOnCollege(col)}
-                    className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                      isSelected
-                        ? isMed
-                          ? 'bg-rose-950/30 border-rose-500/50 shadow-sm'
-                          : 'bg-teal-950/30 border-teal-500/50 shadow-sm'
-                        : 'bg-white/[0.02] border-white/5 hover:border-white/20 hover:bg-white/[0.04]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-white text-[11px] flex-shrink-0 ${
-                        isMed ? 'bg-rose-500' : 'bg-teal-500'
-                      }`}>
-                        {isMed ? '🩺' : '⚙️'}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-semibold text-white text-xs truncate">
-                          {col.shortName}
-                        </div>
-                        <div className="text-[10px] text-neutral-400 truncate">
-                          {col.city} • {col.avgMeetupTime} meetup
-                        </div>
-                      </div>
-                    </div>
-
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-500 flex-shrink-0">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                  </div>
-                );
-              })}
-            </div>
 
           </div>
 
