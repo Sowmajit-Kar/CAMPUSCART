@@ -20,6 +20,16 @@ function App() {
   const [wishlistItems, setWishlistItems] = useState([]);
   const [currentRoute, setCurrentRoute] = useState("overview"); // overview | home | marketplace | services | course | cart
   const [cart, setCart] = useState([]);
+  const [extraProducts, setExtraProducts] = useState(() => {
+
+  try {
+    return JSON.parse(
+      window.localStorage.getItem('campuscart-products') || '[]'
+    );
+  } catch {
+    return [];
+  }
+});
 
   const [orders, setOrders] = useState(() => {
     try {
@@ -166,6 +176,24 @@ function App() {
 
     showToast(`Added "${product.title}" to cart!`);
   };
+
+  const handlePublishProduct = (newProduct) => {
+  setExtraProducts(previousProducts => {
+    const updatedProducts = [
+      newProduct,
+      ...previousProducts,
+    ];
+
+    window.localStorage.setItem(
+      'campuscart-products',
+      JSON.stringify(updatedProducts)
+    );
+
+    return updatedProducts;
+  });
+
+  setCurrentRoute('marketplace');
+};
 
   const increaseCartQuantity = (id) => {
   setCart((previousCart) =>
@@ -611,7 +639,7 @@ const decreaseCartQuantity = (id) => {
 
         {currentRoute === "marketplace" && (
           <MarketplaceFullView
-            extraProducts={localProducts}
+           
             onAddToCart={addToCart}
             onOpenSeller={setSelectedSeller}
             onStartChat={startChat}
@@ -621,14 +649,15 @@ const decreaseCartQuantity = (id) => {
             onRemoveFromWishlist={removeFromWishlist}
             wishlistItems={wishlistItems}
             initialProduct={productToOpen}
+            extraProducts={extraProducts}
           />
         )}
 
         {currentRoute === "sell" && (
-          <SellItemView
-            onBack={() => navigateTo("marketplace")}
-            onPublish={handlePublishListing}
-          />
+         <SellItemView
+  onBack={() => navigateTo('marketplace')}
+  onPublish={handlePublishProduct}
+/>
         )}
         {currentRoute === "orders" && (
   <OrderHistory

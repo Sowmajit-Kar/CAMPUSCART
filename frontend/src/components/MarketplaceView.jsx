@@ -21,6 +21,7 @@ const [minPrice, setMinPrice] = useState('');
 const [maxPrice, setMaxPrice] = useState('');
 const [selectedProduct, setSelectedProduct] = useState(null);
 const [sortOption, setSortOption] = useState('DEFAULT');
+const [quantity, setQuantity] = useState(1);
 
 
   useEffect(() => {
