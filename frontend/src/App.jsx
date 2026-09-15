@@ -19,7 +19,15 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [wishlistItems, setWishlistItems] = useState([]);
   const [currentRoute, setCurrentRoute] = useState("overview"); // overview | home | marketplace | services | course | cart
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+  try {
+    return JSON.parse(
+      window.localStorage.getItem("campuscart-cart") || "[]"
+    );
+  } catch {
+    return [];
+  }
+});
   const [extraProducts, setExtraProducts] = useState(() => {
 
   try {
@@ -53,6 +61,13 @@ function App() {
   const [localProducts, setLocalProducts] = useState([]);
   const [productToOpen, setProductToOpen] = useState(null);
 
+
+  useEffect(() => {
+  window.localStorage.setItem(
+    "campuscart-cart",
+    JSON.stringify(cart)
+  );
+}, [cart]);
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
@@ -223,6 +238,26 @@ const decreaseCartQuantity = (id) => {
   );
 };
 
+const cancelOrder = (orderId) => {
+  setOrders((previousOrders) => {
+    const updatedOrders = previousOrders.map((order) =>
+      order.id === orderId
+        ? {
+            ...order,
+            status: "Cancelled",
+            cancelledAt: new Date().toISOString(),
+          }
+        : order
+    );
+
+    window.localStorage.setItem(
+      "campuscart-orders",
+      JSON.stringify(updatedOrders)
+    );
+
+    return updatedOrders;
+  });
+};
   const startChat = (seller, item) => {
     setActiveChat({
       seller,
@@ -663,6 +698,7 @@ const decreaseCartQuantity = (id) => {
   <OrderHistory
     orders={orders}
     onBack={() => navigateTo("marketplace")}
+    onCancelOrder={cancelOrder}
   />
 )}
         {currentRoute === "wishlist" && (
