@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { CAMPUS_DATA } from "./data/mockData";
 import VideoShowcase from "./components/VideoShowcase";
@@ -15,10 +16,24 @@ import OrderHistory from "./components/OrderHistory";
 import WestBengalMapModal from "./components/WestBengalMapModal";
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    try {
+      return window.localStorage.getItem("campuscart-is-logged-in") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const storedUser = window.localStorage.getItem("campuscart-user");
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch {
+      return null;
+    }
+  });
   const [wishlistItems, setWishlistItems] = useState([]);
-  const [currentRoute, setCurrentRoute] = useState("overview"); // overview | home | marketplace | services | course | cart
   const [cart, setCart] = useState([]);
   const [extraProducts, setExtraProducts] = useState(() => {
 
@@ -98,15 +113,20 @@ function App() {
   const handleLogin = (customEmail) => {
     const email = customEmail || loginEmail || "2024cs1089@campus.edu";
     const roll = email.split("@")[0].toUpperCase();
-    setIsLoggedIn(true);
-    setCurrentUser({
+    const userObj = {
       email: email,
       roll: roll,
       name: roll === "2024CS1089" ? "Aarav Patel" : "Verified Student",
       dept: "Computer Science & Engineering",
       hostel: "Hostel 4, Room 218",
-    });
-    setCurrentRoute("home");
+    };
+    setIsLoggedIn(true);
+    setCurrentUser(userObj);
+    try {
+      window.localStorage.setItem("campuscart-is-logged-in", "true");
+      window.localStorage.setItem("campuscart-user", JSON.stringify(userObj));
+    } catch {}
+    navigate("/home");
     setIsLoginOpen(false);
     if (window.confetti) {
       window.confetti({ particleCount: 80, spread: 65, origin: { y: 0.5 } });
@@ -119,20 +139,29 @@ function App() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setCurrentUser(null);
-    setCurrentRoute("overview");
+    try {
+      window.localStorage.removeItem("campuscart-is-logged-in");
+      window.localStorage.removeItem("campuscart-user");
+    } catch {}
+    navigate("/");
     showToast("👋 Signed out. Returned to CampusCart Overview.");
   };
 
-  const navigateTo = (route) => {
-    if (!isLoggedIn && route !== "overview") {
+  const navigateTo = (target) => {
+    let path = target;
+    if (target === "overview") path = "/";
+    else if (!target.startsWith("/")) path = `/${target}`;
+    if (path === "/course") path = "/courses";
+
+    if (!isLoggedIn && path !== "/") {
       setIsLoginOpen(true);
       showToast(
         "🔒 Please sign in with your college ID (@campus.edu) to access " +
-          route.toUpperCase(),
+          path.replace("/", "").toUpperCase(),
       );
       return;
     }
-    setCurrentRoute(route);
+    navigate(path);
     setNavMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -192,7 +221,7 @@ function App() {
     return updatedProducts;
   });
 
-  setCurrentRoute('marketplace');
+  navigate('/marketplace');
 };
 
   const increaseCartQuantity = (id) => {
@@ -237,7 +266,7 @@ const decreaseCartQuantity = (id) => {
   };
   const handlePublishListing = (product) => {
     setLocalProducts((previous) => [product, ...previous]);
-    setCurrentRoute("marketplace");
+    navigate("/marketplace");
 
     setToastMsg("Your listing was published successfully.");
   };
@@ -308,7 +337,7 @@ const decreaseCartQuantity = (id) => {
         >
           {/* Minimal Geometric Logo */}
           <button
-            onClick={() => navigateTo(isLoggedIn ? "home" : "overview")}
+            onClick={() => navigateTo(isLoggedIn ? "/home" : "/")}
             className="flex items-center gap-2.5 group cursor-pointer flex-shrink-0"
           >
             <div className="w-7 h-7 rounded-full border border-white/30 flex items-center justify-center text-white text-xs group-hover:rotate-45 transition-transform duration-300">
@@ -338,21 +367,21 @@ const decreaseCartQuantity = (id) => {
           {isLoggedIn ? (
             <div className="hidden sm:flex items-center gap-1 sm:gap-1.5 bg-white/10 p-1 rounded-full text-xs font-semibold flex-shrink-0">
               <button
-                onClick={() => navigateTo("home")}
-                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${currentRoute === "home" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                onClick={() => navigateTo("/home")}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${location.pathname === "/home" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 HOME
               </button>
               <button
-                onClick={() => navigateTo("marketplace")}
-                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${currentRoute === "marketplace" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                onClick={() => navigateTo("/marketplace")}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${location.pathname === "/marketplace" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 MARKETPLACE
               </button>
               <button
-                onClick={() => navigateTo("sell")}
+                onClick={() => navigateTo("/sell")}
                 className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${
-                  currentRoute === "sell"
+                  location.pathname === "/sell"
                     ? "bg-white text-black font-bold shadow"
                     : "text-neutral-300 hover:text-white"
                 }`}
@@ -360,21 +389,21 @@ const decreaseCartQuantity = (id) => {
                 SELL ITEM
               </button>
               <button
-                onClick={() => navigateTo("services")}
-                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${currentRoute === "services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                onClick={() => navigateTo("/services")}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${location.pathname === "/services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 SKILLS
               </button>
               <button
-                onClick={() => navigateTo("course")}
-                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${currentRoute === "course" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                onClick={() => navigateTo("/courses")}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${location.pathname === "/courses" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 COURSES
               </button>
               <button
-                onClick={() => navigateTo("orders")}
+                onClick={() => navigateTo("/orders")}
                 className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${
-                  currentRoute === "orders"
+                  location.pathname === "/orders"
                     ? "bg-white font-bold text-black shadow"
                     : "text-neutral-300 hover:text-white"
                 }`}
@@ -382,9 +411,9 @@ const decreaseCartQuantity = (id) => {
                 ORDERS
               </button>
               <button
-                onClick={() => navigateTo("wishlist")}
+                onClick={() => navigateTo("/wishlist")}
                 className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${
-                  currentRoute === "wishlist"
+                  location.pathname === "/wishlist"
                     ? "bg-white text-black font-bold shadow"
                     : "text-neutral-300 hover:text-white"
                 }`}
@@ -539,7 +568,10 @@ const decreaseCartQuantity = (id) => {
         <div className="fixed inset-0 z-40 bg-neutral-950/80 backdrop-blur-md flex flex-col justify-center items-center gap-6 text-white text-2xl font-display font-bold animate-in fade-in duration-200">
           {!isLoggedIn && (
             <button
-              onClick={() => navigateTo("overview")}
+              onClick={() => {
+                navigateTo("/");
+                setNavMenuOpen(false);
+              }}
               className="hover:text-neutral-400"
             >
               OVERVIEW / ABOUT
@@ -548,41 +580,59 @@ const decreaseCartQuantity = (id) => {
           {isLoggedIn ? (
             <>
               <button
-                onClick={() => navigateTo("home")}
+                onClick={() => {
+                  navigateTo("/home");
+                  setNavMenuOpen(false);
+                }}
                 className="hover:text-neutral-400"
               >
                 HOME
               </button>
               <button
-                onClick={() => navigateTo("marketplace")}
+                onClick={() => {
+                  navigateTo("/marketplace");
+                  setNavMenuOpen(false);
+                }}
                 className="hover:text-neutral-400"
               >
                 STUDENT MARKETPLACE
               </button>
               <button
-                onClick={() => navigateTo("services")}
+                onClick={() => {
+                  navigateTo("/services");
+                  setNavMenuOpen(false);
+                }}
                 className="hover:text-neutral-400"
               >
                 PEER SKILLS & GIGS
               </button>
               <button
-                onClick={() => navigateTo("course")}
+                onClick={() => {
+                  navigateTo("/courses");
+                  setNavMenuOpen(false);
+                }}
                 className="hover:text-neutral-400"
               >
                 ACADEMIC COURSES
               </button>
               <button
-                onClick={() => navigateTo("cart")}
+                onClick={() => {
+                  navigateTo("/cart");
+                  setNavMenuOpen(false);
+                }}
                 className="hover:text-neutral-400"
               >
                 MY CART ({cart.length})
               </button>
               <button
-  onClick={() => navigateTo("orders")}
-  className="hover:text-neutral-400"
->
-  ORDER HISTORY
-</button>
+                onClick={() => {
+                  navigateTo("/orders");
+                  setNavMenuOpen(false);
+                }}
+                className="hover:text-neutral-400"
+              >
+                ORDER HISTORY
+              </button>
               <button
                 onClick={() => {
                   handleLogout();
@@ -615,101 +665,124 @@ const decreaseCartQuantity = (id) => {
 
       {/* MAIN VIEW CONTROLLER */}
       <main className="flex-1">
-        {currentRoute === "overview" && (
-          <OverviewGatewayView
-            isLoggedIn={isLoggedIn}
-            onOpenLogin={() => setIsLoginOpen(true)}
-            onExplore={() => navigateTo("marketplace")}
-            onEnterHome={() => navigateTo("home")}
-            onAddToCart={addToCart}
-            onOpenSeller={setSelectedSeller}
-          />
-        )}
-
-        {currentRoute === "home" && (
-          <HomrPageIdeaView
-            onExplore={() => navigateTo("marketplace")}
-            onAddToCart={addToCart}
-            onOpenSeller={setSelectedSeller}
-            onStartChat={startChat}
-            onOpenQr={setQrModalItem}
-            onOpenLogin={() => setIsLoginOpen(true)}
-          />
-        )}
-
-        {currentRoute === "marketplace" && (
-          <MarketplaceFullView
-           
-            onAddToCart={addToCart}
-            onOpenSeller={setSelectedSeller}
-            onStartChat={startChat}
-            onOpenQr={setQrModalItem}
-            onSellItem={() => navigateTo("sell")}
-            onAddToWishlist={addToWishlist}
-            onRemoveFromWishlist={removeFromWishlist}
-            wishlistItems={wishlistItems}
-            initialProduct={productToOpen}
-            extraProducts={extraProducts}
-          />
-        )}
-
-        {currentRoute === "sell" && (
-         <SellItemView
-  onBack={() => navigateTo('marketplace')}
-  onPublish={handlePublishProduct}
-/>
-        )}
-        {currentRoute === "orders" && (
-  <OrderHistory
-    orders={orders}
-    onBack={() => navigateTo("marketplace")}
-  />
-)}
-        {currentRoute === "wishlist" && (
-          <WishlistView
-            wishlistItems={wishlistItems}
-            onBack={() => navigateTo("marketplace")}
-            onOpenProduct={(product) => {
-              setProductToOpen(product);
-              navigateTo("marketplace");
-            }}
-            onRemove={removeFromWishlist}
-            onToggleNeeded={toggleNeededByMe}
-          />
-        )}
-
-        {currentRoute === "services" && (
-          <ServicesSection
-            onBook={(title) =>
-              showToast(
-                `Requested session for "${title}"! Check your college email for details.`,
-              )
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <OverviewGatewayView
+                isLoggedIn={isLoggedIn}
+                onOpenLogin={() => setIsLoginOpen(true)}
+                onExplore={() => navigateTo("/marketplace")}
+                onEnterHome={() => navigateTo("/home")}
+                onAddToCart={addToCart}
+                onOpenSeller={setSelectedSeller}
+              />
             }
           />
-        )}
-
-        {currentRoute === "course" && (
-          <CourseSection
-            onEnroll={() =>
-              showToast("Enrolled in Academic Course! TA has been alerted.")
+          <Route
+            path="/home"
+            element={
+              <HomrPageIdeaView
+                onExplore={() => navigateTo("/marketplace")}
+                onAddToCart={addToCart}
+                onOpenSeller={setSelectedSeller}
+                onStartChat={startChat}
+                onOpenQr={setQrModalItem}
+                onOpenLogin={() => setIsLoginOpen(true)}
+              />
             }
           />
-        )}
-
-        {currentRoute === "cart" && (
-         <CartFullView
-  cart={cart}
-  onRemove={(id) =>
-    setCart((previousCart) =>
-      previousCart.filter((item) => item.id !== id),
-    )
-  }
-  onIncrease={increaseCartQuantity}
-  onDecrease={decreaseCartQuantity}
-  onContinue={() => navigateTo("marketplace")}
-  onCheckout={handleCheckout}
-/>
-        )}
+          <Route
+            path="/marketplace"
+            element={
+              <MarketplaceFullView
+                onAddToCart={addToCart}
+                onOpenSeller={setSelectedSeller}
+                onStartChat={startChat}
+                onOpenQr={setQrModalItem}
+                onSellItem={() => navigateTo("/sell")}
+                onAddToWishlist={addToWishlist}
+                onRemoveFromWishlist={removeFromWishlist}
+                wishlistItems={wishlistItems}
+                initialProduct={productToOpen}
+                extraProducts={extraProducts}
+              />
+            }
+          />
+          <Route
+            path="/sell"
+            element={
+              <SellItemView
+                onBack={() => navigateTo("/marketplace")}
+                onPublish={handlePublishProduct}
+              />
+            }
+          />
+          <Route
+            path="/orders"
+            element={
+              <OrderHistory
+                orders={orders}
+                onBack={() => navigateTo("/marketplace")}
+              />
+            }
+          />
+          <Route
+            path="/wishlist"
+            element={
+              <WishlistView
+                wishlistItems={wishlistItems}
+                onBack={() => navigateTo("/marketplace")}
+                onOpenProduct={(product) => {
+                  setProductToOpen(product);
+                  navigateTo("/marketplace");
+                }}
+                onRemove={removeFromWishlist}
+                onToggleNeeded={toggleNeededByMe}
+              />
+            }
+          />
+          <Route
+            path="/services"
+            element={
+              <ServicesSection
+                onBook={(title) =>
+                  showToast(
+                    `Requested session for "${title}"! Check your college email for details.`,
+                  )
+                }
+              />
+            }
+          />
+          <Route
+            path="/courses"
+            element={
+              <CourseSection
+                onEnroll={() =>
+                  showToast("Enrolled in Academic Course! TA has been alerted.")
+                }
+              />
+            }
+          />
+          <Route
+            path="/cart"
+            element={
+              <CartFullView
+                cart={cart}
+                onRemove={(id) =>
+                  setCart((previousCart) =>
+                    previousCart.filter((item) => item.id !== id),
+                  )
+                }
+                onIncrease={increaseCartQuantity}
+                onDecrease={decreaseCartQuantity}
+                onContinue={() => navigateTo("/marketplace")}
+                onCheckout={handleCheckout}
+              />
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
 
       {/* =========================================================================
