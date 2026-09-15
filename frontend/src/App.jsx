@@ -68,6 +68,13 @@ function App() {
   const [localProducts, setLocalProducts] = useState([]);
   const [productToOpen, setProductToOpen] = useState(null);
 
+
+  useEffect(() => {
+  window.localStorage.setItem(
+    "campuscart-cart",
+    JSON.stringify(cart)
+  );
+}, [cart]);
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
@@ -252,6 +259,26 @@ const decreaseCartQuantity = (id) => {
   );
 };
 
+const cancelOrder = (orderId) => {
+  setOrders((previousOrders) => {
+    const updatedOrders = previousOrders.map((order) =>
+      order.id === orderId
+        ? {
+            ...order,
+            status: "Cancelled",
+            cancelledAt: new Date().toISOString(),
+          }
+        : order
+    );
+
+    window.localStorage.setItem(
+      "campuscart-orders",
+      JSON.stringify(updatedOrders)
+    );
+
+    return updatedOrders;
+  });
+};
   const startChat = (seller, item) => {
     setActiveChat({
       seller,
