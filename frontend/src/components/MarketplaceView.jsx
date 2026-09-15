@@ -20,6 +20,8 @@ const [selectedMode, setSelectedMode] = useState('ALL');
 const [minPrice, setMinPrice] = useState('');
 const [maxPrice, setMaxPrice] = useState('');
 const [selectedProduct, setSelectedProduct] = useState(null);
+const [sortOption, setSortOption] = useState('DEFAULT');
+
 
   useEffect(() => {
     if (initialProduct) {
@@ -37,44 +39,68 @@ const [selectedProduct, setSelectedProduct] = useState(null);
   }, [products]);
 
   const filteredProducts = useMemo(() => {
-    return products.filter(product => {
-      const query = searchQuery.toLowerCase().trim();
+  const filtered = products.filter(product => {
+    const query = searchQuery.toLowerCase().trim();
 
-      const matchesSearch =
-        !query ||
-        product.title.toLowerCase().includes(query) ||
-        product.description.toLowerCase().includes(query) ||
-        product.category.toLowerCase().includes(query) ||
-        product.seller.name.toLowerCase().includes(query);
+    const matchesSearch =
+      !query ||
+      product.title?.toLowerCase().includes(query) ||
+      product.description?.toLowerCase().includes(query) ||
+      product.category?.toLowerCase().includes(query) ||
+      product.seller?.name?.toLowerCase().includes(query);
 
-      const matchesCategory =
-        selectedCategory === 'ALL' ||
-        product.category === selectedCategory;
+    const matchesCategory =
+      selectedCategory === 'ALL' ||
+      product.category === selectedCategory;
 
-      const price = Number(product.price) || 0;
+    const matchesMode =
+      selectedMode === 'ALL' ||
+      product.mode === selectedMode;
 
-const matchesMode =
-  selectedMode === 'ALL' ||
-  product.mode === selectedMode;
+    const price = Number(product.price) || 0;
 
-const matchesMinPrice =
-  minPrice === '' || price >= Number(minPrice);
+    const matchesMinPrice =
+      minPrice === '' || price >= Number(minPrice);
 
-const matchesMaxPrice =
-  maxPrice === '' || price <= Number(maxPrice);
+    const matchesMaxPrice =
+      maxPrice === '' || price <= Number(maxPrice);
 
-return (
-  matchesSearch &&
-  matchesCategory &&
-  matchesMode &&
-  matchesMinPrice &&
-  matchesMaxPrice
-);
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesMode &&
+      matchesMinPrice &&
+      matchesMaxPrice
+    );
+  });
 
-      
-  }, [products, searchQuery, selectedCategory, selectedMode,minPrice,
-  maxPrice,]);
-  })
+  return [...filtered].sort((a, b) => {
+    if (sortOption === 'PRICE_LOW') {
+      return Number(a.price || 0) - Number(b.price || 0);
+    }
+
+    if (sortOption === 'PRICE_HIGH') {
+      return Number(b.price || 0) - Number(a.price || 0);
+    }
+
+    if (sortOption === 'RATING') {
+      return (
+        Number(b.seller?.rating || 0) -
+        Number(a.seller?.rating || 0)
+      );
+    }
+
+    return 0;
+  });
+}, [
+  products,
+  searchQuery,
+  selectedCategory,
+  selectedMode,
+  minPrice,
+  maxPrice,
+  sortOption,
+]);
 
   const getActionLabel = mode => {
     if (mode === 'RENT') return 'Rent Item';
@@ -322,7 +348,7 @@ return (
       </div>
 
       {/* Search and filters */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
   <input
     type="text"
     value={searchQuery}
@@ -330,6 +356,17 @@ return (
     placeholder="Search books, calculators, electronics..."
     className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
   />
+
+  <select
+  value={sortOption}
+  onChange={event => setSortOption(event.target.value)}
+  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
+>
+  <option value="DEFAULT">Sort By</option>
+  <option value="PRICE_LOW">Price: Low to High</option>
+  <option value="PRICE_HIGH">Price: High to Low</option>
+  <option value="RATING">Highest Seller Rating</option>
+</select>
 
   <select
     value={selectedCategory}
@@ -388,7 +425,8 @@ return (
   selectedCategory !== 'ALL' ||
   selectedMode !== 'ALL' ||
   minPrice !== '' ||
-  maxPrice !== ''
+  maxPrice !== '' ||
+  sortOption !== 'DEFAULT'
 ) && (
           <button
             onClick={() => {
@@ -397,6 +435,7 @@ return (
   setSelectedMode('ALL');
   setMinPrice('');
   setMaxPrice('');
+  setSortOption('DEFAULT');
 }}
             className="ml-2 px-4 py-2 rounded-full text-xs font-bold border border-neutral-200 text-neutral-600 hover:bg-neutral-100"
           >
