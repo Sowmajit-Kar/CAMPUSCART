@@ -25,10 +25,11 @@ const [quantity, setQuantity] = useState(1);
 
 
   useEffect(() => {
-    if (initialProduct) {
-      setSelectedProduct(initialProduct);
-    }
-  }, [initialProduct]);
+  if (initialProduct) {
+    setSelectedProduct(initialProduct);
+    setQuantity(1);
+  }
+}, [initialProduct]);
 
   const products = [
   ...(extraProducts || []),
@@ -117,7 +118,11 @@ const [quantity, setQuantity] = useState(1);
     return (
       <section className="max-w-7xl mx-auto px-6 sm:px-12 pt-32 pb-20">
         <button
-          onClick={() => setSelectedProduct(null)}
+          onClick={() =>{ 
+            setSelectedProduct(null);
+            setQuantity(1);
+
+          }}
           className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-neutral-500 hover:text-neutral-950 transition"
         >
           ← Back to Marketplace
@@ -233,36 +238,86 @@ const [quantity, setQuantity] = useState(1);
               </div>
             </div>
 
-            {/* Main actions */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                onClick={() => onAddToCart(product)}
-                className="rounded-xl bg-neutral-950 text-white py-3 px-5 font-bold hover:bg-neutral-800 transition"
-              >
-                {getActionLabel(product.mode)}
-              </button>
+            {/* Quantity + Main Actions */}
+<div className="space-y-4">
+  {product.mode === "BUY" && (
+    <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
+          Quantity
+        </p>
 
-              <button
-                onClick={() => onStartChat(product.seller, product)}
-                className="rounded-xl bg-neutral-100 text-neutral-900 py-3 px-5 font-bold hover:bg-neutral-200 transition"
-              >
-                Chat with Seller
-              </button>
+        <p className="mt-1 text-xs text-neutral-500">
+          Select how many you want
+        </p>
+      </div>
 
-              <button
-                onClick={() => onOpenQr(product)}
-                className="rounded-xl bg-emerald-600 text-white py-3 px-5 font-bold hover:bg-emerald-700 transition"
-              >
-                Generate QR Token
-              </button>
+      <div className="flex items-center rounded-xl border border-neutral-200 bg-white">
+        <button
+          type="button"
+          onClick={() =>
+            setQuantity((current) => Math.max(1, current - 1))
+          }
+          disabled={quantity <= 1}
+          className="flex h-10 w-10 items-center justify-center rounded-l-xl text-lg font-bold text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30"
+          aria-label="Decrease quantity"
+        >
+          −
+        </button>
 
-              <button
-                onClick={() => onOpenSeller(product.seller)}
-                className="rounded-xl border border-neutral-200 bg-white text-neutral-900 py-3 px-5 font-bold hover:bg-neutral-100 transition"
-              >
-                View Seller Profile
-              </button>
-            </div>
+        <span className="flex h-10 min-w-12 items-center justify-center border-x border-neutral-200 px-4 text-sm font-black text-neutral-950">
+          {quantity}
+        </span>
+
+        <button
+          type="button"
+          onClick={() =>
+            setQuantity((current) => current + 1)
+          }
+          className="flex h-10 w-10 items-center justify-center rounded-r-xl text-lg font-bold text-neutral-700 transition hover:bg-neutral-100"
+          aria-label="Increase quantity"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  )}
+
+  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <button
+      onClick={() => {
+        onAddToCart(product, quantity);
+        setQuantity(1);
+      }}
+      className="rounded-xl bg-neutral-950 px-5 py-3 font-bold text-white transition hover:bg-neutral-800"
+    >
+      {getActionLabel(product.mode)}
+    </button>
+
+    <button
+      onClick={() =>
+        onStartChat(product.seller, product)
+      }
+      className="rounded-xl bg-neutral-100 px-5 py-3 font-bold text-neutral-900 transition hover:bg-neutral-200"
+    >
+      Chat with Seller
+    </button>
+
+    <button
+      onClick={() => onOpenQr(product)}
+      className="rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white transition hover:bg-emerald-700"
+    >
+      Generate QR Token
+    </button>
+
+    <button
+      onClick={() => onOpenSeller(product.seller)}
+      className="rounded-xl border border-neutral-200 bg-white px-5 py-3 font-bold text-neutral-900 transition hover:bg-neutral-100"
+    >
+      View Seller Profile
+    </button>
+  </div>
+</div>
           </div>
         </div>
 
@@ -469,7 +524,7 @@ const [quantity, setQuantity] = useState(1);
                 className="bg-white rounded-3xl overflow-hidden border border-neutral-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
               >
                 <button
-                  onClick={() => setSelectedProduct(product)}
+                  onClick={() => {setSelectedProduct(product);setQuantity(1);}}
                   className="aspect-[4/3] bg-neutral-100 overflow-hidden relative text-left"
                 >
                   <img
@@ -490,7 +545,7 @@ const [quantity, setQuantity] = useState(1);
                 <div className="p-5 flex-1 flex flex-col">
                   <div className="flex items-start justify-between gap-3">
                     <button
-                      onClick={() => setSelectedProduct(product)}
+                      onClick={() => {setSelectedProduct(product);setQuantity(1);}}
                       className="text-left"
                     >
                       <h3 className="font-display font-bold text-xl text-neutral-950 hover:underline">
@@ -539,7 +594,7 @@ const [quantity, setQuantity] = useState(1);
 
                   <div className="mt-5 pt-4 border-t border-neutral-100 grid grid-cols-2 gap-2">
                     <button
-                      onClick={() => setSelectedProduct(product)}
+                      onClick={() => {setSelectedProduct(product);setQuantity(1);}}
                       className="py-2.5 rounded-xl bg-neutral-950 text-white text-xs font-bold hover:bg-neutral-800 transition"
                     >
                       View Details
