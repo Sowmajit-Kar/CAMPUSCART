@@ -173,7 +173,8 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const addToCart = (product, requestedQuantity = 1) => {
+ const addToCart = (product, requestedQuantity = 1) => {
+  const stock = Math.max(0, Number(product.stock) || 0);
   const quantityToAdd = Math.max(
     1,
     Number(requestedQuantity) || 1
@@ -184,12 +185,30 @@ function App() {
       (item) => item.id === product.id
     );
 
+    const currentQuantity = existingItem?.qty || 0;
+    const availableToAdd = stock - currentQuantity;
+
+    if (stock <= 0) {
+      showToast(`"${product.title}" is currently out of stock.`);
+      return previousCart;
+    }
+
+    if (availableToAdd <= 0) {
+      showToast(`"${product.title}" is already at the stock limit.`);
+      return previousCart;
+    }
+
+    const finalQuantityToAdd = Math.min(
+      quantityToAdd,
+      availableToAdd
+    );
+
     if (existingItem) {
       return previousCart.map((item) =>
         item.id === product.id
           ? {
               ...item,
-              qty: item.qty + quantityToAdd,
+              qty: item.qty + finalQuantityToAdd,
             }
           : item
       );
@@ -208,7 +227,7 @@ function App() {
         id: product.id,
         title: product.title,
         price: Number(product.price) || 0,
-        qty: quantityToAdd,
+        qty: finalQuantityToAdd,
         image: product.image,
         seller: sellerName,
         pickupLocation:
@@ -221,9 +240,15 @@ function App() {
     ];
   });
 
-  showToast(
-    `Added ${quantityToAdd} × "${product.title}" to cart!`
-  );
+  if (quantityToAdd > stock) {
+    showToast(
+      `Only ${stock} × "${product.title}" available.`
+    );
+  } else {
+    showToast(
+      `Added ${quantityToAdd} × "${product.title}" to cart!`
+    );
+  }
 };
 
   const handlePublishProduct = (newProduct) => {
@@ -244,16 +269,35 @@ function App() {
   navigate('/marketplace');
 };
 
-  const increaseCartQuantity = (id) => {
+ const increaseCartQuantity = (id) => {
   setCart((previousCart) =>
-    previousCart.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            qty: item.qty + 1,
-          }
-        : item,
-    ),
+    previousCart.map((item) => {
+      if (item.id !== id) {
+        return item;
+      }
+
+      const product = products.find(
+        (productItem) => productItem.id === id
+      );
+
+      const stock = Math.max(
+        0,
+        Number(product?.stock) || 0
+      );
+
+      if (item.qty >= stock) {
+        showToast(
+          `Only ${stock} × "${item.title}" available.`
+        );
+
+        return item;
+      }
+
+      return {
+        ...item,
+        qty: item.qty + 1,
+      };
+    })
   );
 };
 
