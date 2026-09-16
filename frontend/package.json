@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "campuscart": "file:..",
     "canvas-confetti": "^1.9.4",
     "leaflet": "^1.9.4",
@@ -21,7 +22,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^3.4.19",
     "vite": "^6.0.7"
   }
 }

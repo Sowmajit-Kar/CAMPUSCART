@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  useNavigate,
+  useLocation,
+  Navigate,
+} from "react-router-dom";
 import confetti from "canvas-confetti";
 import { CAMPUS_DATA } from "./data/mockData";
 import VideoShowcase from "./components/VideoShowcase";
@@ -36,15 +42,14 @@ function App() {
   const [wishlistItems, setWishlistItems] = useState([]);
   const [cart, setCart] = useState([]);
   const [extraProducts, setExtraProducts] = useState(() => {
-
-  try {
-    return JSON.parse(
-      window.localStorage.getItem('campuscart-products') || '[]'
-    );
-  } catch {
-    return [];
-  }
-});
+    try {
+      return JSON.parse(
+        window.localStorage.getItem("campuscart-products") || "[]",
+      );
+    } catch {
+      return [];
+    }
+  });
 
   const [orders, setOrders] = useState(() => {
     try {
@@ -68,13 +73,48 @@ function App() {
   const [localProducts, setLocalProducts] = useState([]);
   const [productToOpen, setProductToOpen] = useState(null);
 
+  const [inventoryOverrides, setInventoryOverrides] = useState(() => {
+  try {
+    return JSON.parse(
+      window.localStorage.getItem("campuscart-inventory") || "{}"
+    );
+  } catch {
+    return {};
+  }
+});
 
-  useEffect(() => {
-  window.localStorage.setItem(
-    "campuscart-cart",
-    JSON.stringify(cart)
+  const allProducts = useMemo(
+    () => [
+      ...(CAMPUS_DATA?.products || []),
+      ...(extraProducts || []),
+      ...(localProducts || []),
+    ],
+    [extraProducts, localProducts],
   );
-}, [cart]);
+
+  const getProductStock = (product) => {
+  const originalStock = Math.max(
+    0,
+    Number(product?.stock) || 0
+  );
+
+  if (
+    Object.prototype.hasOwnProperty.call(
+      inventoryOverrides,
+      product.id
+    )
+  ) {
+    return Math.max(
+      0,
+      Number(inventoryOverrides[product.id]) || 0
+    );
+  }
+
+  return originalStock;
+};
+  useEffect(() => {
+    window.localStorage.setItem("campuscart-cart", JSON.stringify(cart));
+  }, [cart]);
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
@@ -173,169 +213,154 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
- const addToCart = (product, requestedQuantity = 1) => {
-  const stock = Math.max(0, Number(product.stock) || 0);
-  const quantityToAdd = Math.max(
-    1,
-    Number(requestedQuantity) || 1
-  );
+  const addToCart = (product, requestedQuantity = 1) => {
+    const stock = getProductStock(product);
+    const quantityToAdd = Math.max(1, Number(requestedQuantity) || 1);
 
-  setCart((previousCart) => {
-    const existingItem = previousCart.find(
-      (item) => item.id === product.id
-    );
+    setCart((previousCart) => {
+      const existingItem = previousCart.find((item) => item.id === product.id);
 
-    const currentQuantity = existingItem?.qty || 0;
-    const availableToAdd = stock - currentQuantity;
+      const currentQuantity = existingItem?.qty || 0;
+      const availableToAdd = stock - currentQuantity;
 
-    if (stock <= 0) {
-      showToast(`"${product.title}" is currently out of stock.`);
-      return previousCart;
-    }
+      if (stock <= 0) {
+        showToast(`"${product.title}" is currently out of stock.`);
+        return previousCart;
+      }
 
-    if (availableToAdd <= 0) {
-      showToast(`"${product.title}" is already at the stock limit.`);
-      return previousCart;
-    }
+      if (availableToAdd <= 0) {
+        showToast(`"${product.title}" is already at the stock limit.`);
+        return previousCart;
+      }
 
-    const finalQuantityToAdd = Math.min(
-      quantityToAdd,
-      availableToAdd
-    );
+      const finalQuantityToAdd = Math.min(quantityToAdd, availableToAdd);
 
-    if (existingItem) {
-      return previousCart.map((item) =>
-        item.id === product.id
-          ? {
-              ...item,
-              qty: item.qty + finalQuantityToAdd,
-            }
-          : item
+      if (existingItem) {
+        return previousCart.map((item) =>
+          item.id === product.id
+            ? {
+                ...item,
+                qty: item.qty + finalQuantityToAdd,
+              }
+            : item,
+        );
+      }
+
+      const sellerName =
+        typeof product.seller === "object"
+          ? product.seller?.name || "Campus Seller"
+          : product.seller || product.sellerName || "Campus Seller";
+
+      return [
+        ...previousCart,
+        {
+          id: product.id,
+          title: product.title,
+          price: Number(product.price) || 0,
+          qty: finalQuantityToAdd,
+          image: product.image,
+          seller: sellerName,
+          pickupLocation:
+            typeof product.pickupLocation === "object"
+              ? product.pickupLocation?.name || "Campus Safe Desk"
+              : product.pickupLocation || "Campus Safe Desk",
+        },
+      ];
+    });
+
+    if (quantityToAdd > stock) {
+      showToast(
+        `Only ${stock} × "${product.title}" available. Added ${Math.min(
+          quantityToAdd,
+          stock,
+        )}.`,
       );
+    } else {
+      showToast(`Added ${quantityToAdd} × "${product.title}" to cart!`);
     }
-
-    const sellerName =
-      typeof product.seller === "object"
-        ? product.seller?.name || "Campus Seller"
-        : product.seller ||
-          product.sellerName ||
-          "Campus Seller";
-
-    return [
-      ...previousCart,
-      {
-        id: product.id,
-        title: product.title,
-        price: Number(product.price) || 0,
-        qty: finalQuantityToAdd,
-        image: product.image,
-        seller: sellerName,
-        pickupLocation:
-          typeof product.pickupLocation === "object"
-            ? product.pickupLocation?.name ||
-              "Campus Safe Desk"
-            : product.pickupLocation ||
-              "Campus Safe Desk",
-      },
-    ];
-  });
-
-  if (quantityToAdd > stock) {
-    showToast(
-      `Only ${stock} × "${product.title}" available.`
-    );
-  } else {
-    showToast(
-      `Added ${quantityToAdd} × "${product.title}" to cart!`
-    );
-  }
-};
+  };
 
   const handlePublishProduct = (newProduct) => {
-  setExtraProducts(previousProducts => {
-    const updatedProducts = [
-      newProduct,
-      ...previousProducts,
-    ];
+    setExtraProducts((previousProducts) => {
+      const updatedProducts = [newProduct, ...previousProducts];
 
-    window.localStorage.setItem(
-      'campuscart-products',
-      JSON.stringify(updatedProducts)
-    );
-
-    return updatedProducts;
-  });
-
-  navigate('/marketplace');
-};
-
- const increaseCartQuantity = (id) => {
-  setCart((previousCart) =>
-    previousCart.map((item) => {
-      if (item.id !== id) {
-        return item;
-      }
-
-      const product = products.find(
-        (productItem) => productItem.id === id
+      window.localStorage.setItem(
+        "campuscart-products",
+        JSON.stringify(updatedProducts),
       );
 
-      const stock = Math.max(
-        0,
-        Number(product?.stock) || 0
-      );
+      return updatedProducts;
+    });
 
-      if (item.qty >= stock) {
-        showToast(
-          `Only ${stock} × "${item.title}" available.`
+    navigate("/marketplace");
+  };
+
+  const increaseCartQuantity = (id) => {
+    setCart((previousCart) =>
+      previousCart.map((item) => {
+        if (item.id !== id) {
+          return item;
+        }
+
+        const product = allProducts.find(
+          (productItem) => productItem.id === id,
         );
 
-        return item;
-      }
+       const stock = getProductStock(product);
+        if (stock <= 0) {
+          showToast(`"${item.title}" is out of stock.`);
+          return item;
+        }
 
-      return {
-        ...item,
-        qty: item.qty + 1,
-      };
-    })
-  );
-};
+        if (item.qty >= stock) {
+          showToast(`Only ${stock} × "${item.title}" available.`);
 
-const decreaseCartQuantity = (id) => {
-  setCart((previousCart) =>
-    previousCart
-      .map((item) =>
-        item.id === id
+          return item;
+        }
+
+        return {
+          ...item,
+          qty: item.qty + 1,
+        };
+      }),
+    );
+  };
+
+  const decreaseCartQuantity = (id) => {
+    setCart((previousCart) =>
+      previousCart
+        .map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                qty: item.qty - 1,
+              }
+            : item,
+        )
+        .filter((item) => item.qty > 0),
+    );
+  };
+
+  const cancelOrder = (orderId) => {
+    setOrders((previousOrders) => {
+      const updatedOrders = previousOrders.map((order) =>
+        order.id === orderId
           ? {
-              ...item,
-              qty: item.qty - 1,
+              ...order,
+              status: "Cancelled",
+              cancelledAt: new Date().toISOString(),
             }
-          : item,
-      )
-      .filter((item) => item.qty > 0),
-  );
-};
+          : order,
+      );
 
-const cancelOrder = (orderId) => {
-  setOrders((previousOrders) => {
-    const updatedOrders = previousOrders.map((order) =>
-      order.id === orderId
-        ? {
-            ...order,
-            status: "Cancelled",
-            cancelledAt: new Date().toISOString(),
-          }
-        : order
-    );
+      window.localStorage.setItem(
+        "campuscart-orders",
+        JSON.stringify(updatedOrders),
+      );
 
-    window.localStorage.setItem(
-      "campuscart-orders",
-      JSON.stringify(updatedOrders)
-    );
-
-    return updatedOrders;
-  });
-};
+      return updatedOrders;
+    });
+  };
   const startChat = (seller, item) => {
     setActiveChat({
       seller,
@@ -360,7 +385,47 @@ const cancelOrder = (orderId) => {
       showToast("Your cart is empty.");
       return;
     }
+    for (const item of cart) {
+      const product = allProducts.find(
+        (productItem) => productItem.id === item.id,
+      );
 
+      const stock = Math.max(0, Number(product?.stock) || 0);
+
+      if (item.qty > stock) {
+        showToast(
+          `"${item.title}" only has ${stock} available. Please update your cart.`,
+        );
+        return;
+      }
+
+      if (stock <= 0) {
+        showToast(`"${item.title}" is currently out of stock.`);
+        return;
+      }
+    }
+
+    const updatedInventory = { ...inventoryOverrides };
+
+for (const item of cart) {
+  const product = allProducts.find(
+    (productItem) => productItem.id === item.id
+  );
+
+  const currentStock = getProductStock(product);
+
+  updatedInventory[item.id] = Math.max(
+    0,
+    currentStock - item.qty
+  );
+}
+
+setInventoryOverrides(updatedInventory);
+
+window.localStorage.setItem(
+  "campuscart-inventory",
+  JSON.stringify(updatedInventory)
+);
     const total = cart.reduce(
       (sum, item) => sum + Number(item.price || 0) * item.qty,
       0,
@@ -790,6 +855,7 @@ const cancelOrder = (orderId) => {
                 wishlistItems={wishlistItems}
                 initialProduct={productToOpen}
                 extraProducts={extraProducts}
+                inventoryOverrides={inventoryOverrides}
               />
             }
           />

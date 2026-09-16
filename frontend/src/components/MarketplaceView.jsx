@@ -11,7 +11,8 @@ function MarketplaceFullView({
    onAddToWishlist,
   onRemoveFromWishlist,
   wishlistItems = [],
-  initialProduct = null
+  initialProduct = null,
+  inventoryOverrides = {},
 
 }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,6 +36,27 @@ const [quantity, setQuantity] = useState(1);
   ...(extraProducts || []),
   ...(window.CAMPUS_DATA?.products || [])
 ];
+
+const getProductStock = (product) => {
+  const originalStock = Math.max(
+    0,
+    Number(product?.stock) || 0
+  );
+
+  if (
+    Object.prototype.hasOwnProperty.call(
+      inventoryOverrides,
+      product.id
+    )
+  ) {
+    return Math.max(
+      0,
+      Number(inventoryOverrides[product.id]) || 0
+    );
+  }
+
+  return originalStock;
+};
 
   const categories = useMemo(() => {
     return ['ALL', ...new Set(products.map(product => product.category))];
@@ -112,6 +134,7 @@ const [quantity, setQuantity] = useState(1);
 
   if (selectedProduct) {
     const product = selectedProduct;
+    const currentStock = getProductStock(product);
   const isWishlisted = wishlistItems.some(
   item => item.id === product.id
     );
@@ -198,6 +221,24 @@ const [quantity, setQuantity] = useState(1);
                   Rental rate: {product.rentalRate}
                 </p>
               )}
+
+              {product.mode === "BUY" && (
+  <div
+    className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${
+      currentStock === 0
+        ? "bg-red-50 text-red-700"
+        : currentStock <= 3
+        ? "bg-amber-50 text-amber-700"
+        : "bg-emerald-50 text-emerald-700"
+    }`}
+  >
+    {currentStock === 0
+      ? "Out of Stock"
+      : currentStock <= 3
+      ? `Only ${currentStock} left`
+      : `${currentStock} available`}
+  </div>
+)}
             </div>
 
             <div className="border-t border-b border-neutral-200 py-5">
@@ -270,15 +311,23 @@ const [quantity, setQuantity] = useState(1);
         </span>
 
         <button
-          type="button"
-          onClick={() =>
-            setQuantity((current) => current + 1)
-          }
-          className="flex h-10 w-10 items-center justify-center rounded-r-xl text-lg font-bold text-neutral-700 transition hover:bg-neutral-100"
-          aria-label="Increase quantity"
-        >
-          +
-        </button>
+  type="button"
+  onClick={() => {
+    if (quantity >= currentStock) {
+      return;
+    }
+
+    setQuantity((current) => current + 1);
+  }}
+  disabled={
+    currentStock === 0 ||
+    quantity >= currentStock
+  }
+  className="flex h-10 w-10 items-center justify-center rounded-r-xl text-lg font-bold text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30"
+  aria-label="Increase quantity"
+>
+  +
+</button>
       </div>
     </div>
   )}
