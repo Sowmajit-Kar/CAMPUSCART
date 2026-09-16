@@ -173,45 +173,58 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const addToCart = (product) => {
-    setCart((previousCart) => {
-      const existingItem = previousCart.find((item) => item.id === product.id);
+  const addToCart = (product, requestedQuantity = 1) => {
+  const quantityToAdd = Math.max(
+    1,
+    Number(requestedQuantity) || 1
+  );
 
-      if (existingItem) {
-        return previousCart.map((item) =>
-          item.id === product.id
-            ? {
-                ...item,
-                qty: item.qty + 1,
-              }
-            : item,
-        );
-      }
+  setCart((previousCart) => {
+    const existingItem = previousCart.find(
+      (item) => item.id === product.id
+    );
 
-      const sellerName =
-        typeof product.seller === "object"
-          ? product.seller?.name || "Campus Seller"
-          : product.seller || product.sellerName || "Campus Seller";
+    if (existingItem) {
+      return previousCart.map((item) =>
+        item.id === product.id
+          ? {
+              ...item,
+              qty: item.qty + quantityToAdd,
+            }
+          : item
+      );
+    }
 
-      return [
-        ...previousCart,
-        {
-          id: product.id,
-          title: product.title,
-          price: Number(product.price) || 0,
-          qty: 1,
-          image: product.image,
-          seller: sellerName,
-          pickupLocation:
-            typeof product.pickupLocation === "object"
-              ? product.pickupLocation?.name || "Campus Safe Desk"
-              : product.pickupLocation || "Campus Safe Desk",
-        },
-      ];
-    });
+    const sellerName =
+      typeof product.seller === "object"
+        ? product.seller?.name || "Campus Seller"
+        : product.seller ||
+          product.sellerName ||
+          "Campus Seller";
 
-    showToast(`Added "${product.title}" to cart!`);
-  };
+    return [
+      ...previousCart,
+      {
+        id: product.id,
+        title: product.title,
+        price: Number(product.price) || 0,
+        qty: quantityToAdd,
+        image: product.image,
+        seller: sellerName,
+        pickupLocation:
+          typeof product.pickupLocation === "object"
+            ? product.pickupLocation?.name ||
+              "Campus Safe Desk"
+            : product.pickupLocation ||
+              "Campus Safe Desk",
+      },
+    ];
+  });
+
+  showToast(
+    `Added ${quantityToAdd} × "${product.title}" to cart!`
+  );
+};
 
   const handlePublishProduct = (newProduct) => {
   setExtraProducts(previousProducts => {
