@@ -94,17 +94,35 @@ function App() {
   }
 });
 
+const [productOverrides, setProductOverrides] = useState(() => {
+  try {
+    return JSON.parse(
+      window.localStorage.getItem("campuscart-product-overrides") || "{}"
+    );
+  } catch {
+    return {};
+  }
+});
+
   const allProducts = useMemo(() => {
-  const products = [
+  const baseProducts = [
     ...(CAMPUS_DATA?.products || []),
     ...(extraProducts || []),
     ...(localProducts || []),
   ];
 
-  return products.filter(
-    (product) => !deletedProductIds.includes(product.id)
-  );
-}, [extraProducts, localProducts, deletedProductIds]);
+  return baseProducts
+    .filter((product) => !deletedProductIds.includes(product.id))
+    .map((product) => ({
+      ...product,
+      ...(productOverrides[product.id] || {}),
+    }));
+}, [
+  extraProducts,
+  localProducts,
+  deletedProductIds,
+  productOverrides,
+]);
 
   const getProductStock = (product) => {
   const originalStock = Math.max(
@@ -309,7 +327,73 @@ function App() {
     navigate("/marketplace");
   };
 
-  
+  const handleEditProduct = (updatedProduct) => {
+  setProductOverrides((previousOverrides) => {
+    const updatedOverrides = {
+      ...previousOverrides,
+      [updatedProduct.id]: updatedProduct,
+    };
+
+    window.localStorage.setItem(
+      "campuscart-product-overrides",
+      JSON.stringify(updatedOverrides)
+    );
+
+    return updatedOverrides;
+  });
+
+  // Also update seller-created products if they exist in extraProducts
+  setExtraProducts((previousProducts) => {
+    const exists = previousProducts.some(
+      (product) => product.id === updatedProduct.id
+    );
+
+    if (!exists) {
+      return previousProducts;
+    }
+
+    const updatedProducts = previousProducts.map((product) =>
+      product.id === updatedProduct.id
+        ? updatedProduct
+        : product
+    );
+
+    window.localStorage.setItem(
+      "campuscart-products",
+      JSON.stringify(updatedProducts)
+    );
+
+    return updatedProducts;
+  });
+
+  // Keep localProducts synchronized
+  setLocalProducts((previousProducts) =>
+    previousProducts.map((product) =>
+      product.id === updatedProduct.id
+        ? updatedProduct
+        : product
+    )
+  );
+
+  // Update inventory override
+  if (updatedProduct.stock !== undefined) {
+    setInventoryOverrides((previous) => {
+      const updatedInventory = {
+        ...previous,
+        [updatedProduct.id]: Number(updatedProduct.stock) || 0,
+      };
+
+      window.localStorage.setItem(
+        "campuscart-inventory",
+        JSON.stringify(updatedInventory)
+      );
+
+      return updatedInventory;
+    });
+  }
+
+  showToast("Product updated successfully.");
+};
 
  const handleDeleteProduct = (productId) => {
   setDeletedProductIds((previousIds) => {
@@ -916,6 +1000,7 @@ window.localStorage.setItem(
                 initialProduct={productToOpen}
                 extraProducts={extraProducts}
                 inventoryOverrides={inventoryOverrides}
+                productOverrides={productOverrides}
               />
             }
           />
@@ -999,6 +1084,7 @@ window.localStorage.setItem(
       products={allProducts}
       currentUser={currentUser}
       onDeleteProduct={handleDeleteProduct}
+      onEditProduct={handleEditProduct}
     />
   }
 />

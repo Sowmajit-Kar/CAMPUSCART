@@ -13,6 +13,7 @@ function MarketplaceFullView({
   wishlistItems = [],
   initialProduct = null,
   inventoryOverrides = {},
+  productOverrides = {},
 
 }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,7 +36,10 @@ const [quantity, setQuantity] = useState(1);
   const products = [
   ...(extraProducts || []),
   ...(window.CAMPUS_DATA?.products || [])
-];
+].map((product) => ({
+  ...product,
+  ...(productOverrides[product.id] || {}),
+}));
 
 const getProductStock = (product) => {
   const originalStock = Math.max(
