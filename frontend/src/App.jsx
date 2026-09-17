@@ -20,6 +20,7 @@ import CartFullView from "./components/CartView";
 import WishlistView from "./components/WishListView.jsx";
 import OrderHistory from "./components/OrderHistory";
 import WestBengalMapModal from "./components/WestBengalMapModal";
+import SellerDashboard from "./components/SellerDashboard.jsx";
 
 function App() {
   const navigate = useNavigate();
@@ -73,6 +74,16 @@ function App() {
   const [localProducts, setLocalProducts] = useState([]);
   const [productToOpen, setProductToOpen] = useState(null);
 
+
+  const [deletedProductIds, setDeletedProductIds] = useState(() => {
+  try {
+    return JSON.parse(
+      window.localStorage.getItem("campuscart-deleted-products") || "[]"
+    );
+  } catch {
+    return [];
+  }
+});
   const [inventoryOverrides, setInventoryOverrides] = useState(() => {
   try {
     return JSON.parse(
@@ -83,14 +94,17 @@ function App() {
   }
 });
 
-  const allProducts = useMemo(
-    () => [
-      ...(CAMPUS_DATA?.products || []),
-      ...(extraProducts || []),
-      ...(localProducts || []),
-    ],
-    [extraProducts, localProducts],
+  const allProducts = useMemo(() => {
+  const products = [
+    ...(CAMPUS_DATA?.products || []),
+    ...(extraProducts || []),
+    ...(localProducts || []),
+  ];
+
+  return products.filter(
+    (product) => !deletedProductIds.includes(product.id)
   );
+}, [extraProducts, localProducts, deletedProductIds]);
 
   const getProductStock = (product) => {
   const originalStock = Math.max(
@@ -294,6 +308,52 @@ function App() {
 
     navigate("/marketplace");
   };
+
+  
+
+ const handleDeleteProduct = (productId) => {
+  setDeletedProductIds((previousIds) => {
+    const updatedIds = [...new Set([...previousIds, productId])];
+
+    window.localStorage.setItem(
+      "campuscart-deleted-products",
+      JSON.stringify(updatedIds)
+    );
+
+    return updatedIds;
+  });
+
+  setExtraProducts((previousProducts) => {
+    const updatedProducts = previousProducts.filter(
+      (product) => product.id !== productId
+    );
+
+    window.localStorage.setItem(
+      "campuscart-products",
+      JSON.stringify(updatedProducts)
+    );
+
+    return updatedProducts;
+  });
+
+  setLocalProducts((previousProducts) =>
+    previousProducts.filter((product) => product.id !== productId)
+  );
+
+  setInventoryOverrides((previous) => {
+    const updated = { ...previous };
+    delete updated[productId];
+
+    window.localStorage.setItem(
+      "campuscart-inventory",
+      JSON.stringify(updated)
+    );
+
+    return updated;
+  });
+
+  showToast("Listing deleted successfully.");
+};
 
   const increaseCartQuantity = (id) => {
     setCart((previousCart) =>
@@ -931,6 +991,17 @@ window.localStorage.setItem(
               />
             }
           />
+
+          <Route
+  path="/seller-dashboard"
+  element={
+    <SellerDashboard
+      products={allProducts}
+      currentUser={currentUser}
+      onDeleteProduct={handleDeleteProduct}
+    />
+  }
+/>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
