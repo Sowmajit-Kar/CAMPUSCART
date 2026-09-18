@@ -808,34 +808,6 @@ window.localStorage.setItem(
 
           {/* Right Menu / Cart & User Actions */}
           <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
-            {/* Live MongoDB Atlas Cloud Indicator (for Teacher Viva / Live Demo) */}
-            <a
-              href={`${import.meta.env.VITE_API_URL || "https://campuscart-6m90.onrender.com"}/docs`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono border transition flex-shrink-0 cursor-pointer ${
-                dbStatus === "connected"
-                  ? "bg-emerald-950/70 border-emerald-500/50 text-emerald-400 hover:bg-emerald-900/80"
-                  : dbStatus === "connecting"
-                  ? "bg-amber-950/70 border-amber-500/50 text-amber-400 hover:bg-amber-900/80"
-                  : "bg-neutral-900/80 border-neutral-700 text-neutral-400 hover:bg-neutral-800"
-              }`}
-              title="FastAPI + MongoDB Atlas Live Backend (Click to open Swagger Docs)"
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  dbStatus === "connected"
-                    ? "bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"
-                    : dbStatus === "connecting"
-                    ? "bg-amber-400 animate-ping"
-                    : "bg-neutral-500"
-                }`}
-              ></span>
-              <span className="font-bold">
-                {dbStatus === "connected" ? "MongoDB Atlas" : dbStatus === "connecting" ? "Connecting..." : "DB Offline"}
-              </span>
-            </a>
-
             {/* West Bengal College Zonal Map Button (Left of Cart) */}
             <button
               onClick={() => setIsMapOpen(true)}
