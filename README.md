@@ -45,6 +45,7 @@ CAMPUSCART/
             ├── HomrPageIdeaView.jsx      # Post-login marketplace dashboard & live ticker
             ├── MarketplaceView.jsx       # Product catalog grid, search & category filters
             ├── SellItemView.jsx          # Listing creation & item publish form
+            ├── SellerDashboard.jsx       # Seller active inventory, listing editor & sales stats
             ├── ServicesView.jsx          # Peer tutoring, student gigs & skill exchange
             ├── CourseView.jsx            # Course materials & past exams exchange
             ├── CartView.jsx              # Shopping cart & checkout token generator
