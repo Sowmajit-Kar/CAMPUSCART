@@ -52,4 +52,12 @@ tests
 scratch/
 PRESENTATION_DECK.md
 *.pptx
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+*.db
+
 

@@ -1,26 +1,73 @@
+import logging
+from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
+from contextlib import asynccontextmanager
 
-from app.core.database import engine
+from app.core.config import settings
+from app.core.mongodb import get_database, check_mongo_health, mongo_manager
+from app.routes.products import router as products_router
+from app.data.initial_data import INITIAL_PRODUCTS
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("campuscart.api")
+
+
+# --------------------------------------------------
+# Lifespan: Auto-Connect & Auto-Seed MongoDB
+# --------------------------------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("🚀 Starting CampusCart API...")
+    try:
+        db = get_database()
+        await db.command("ping")
+        logger.info("✅ Connected to MongoDB successfully!")
+
+        # Option 1: Auto-seed initial items if collection is empty
+        count = await db["products"].count_documents({})
+        if count == 0:
+            logger.info("📦 Products collection is empty. Auto-seeding initial campus marketplace data...")
+            now = datetime.utcnow().isoformat()
+            seeded = []
+            for item in INITIAL_PRODUCTS:
+                entry = dict(item)
+                entry["created_at"] = now
+                entry["updated_at"] = now
+                seeded.append(entry)
+            await db["products"].insert_many(seeded)
+            logger.info(f"🎉 Successfully seeded {len(seeded)} initial items into MongoDB!")
+        else:
+            logger.info(f"📊 MongoDB currently has {count} active products.")
+    except Exception as e:
+        logger.warning(f"⚠️ MongoDB connection not established at startup (will retry on requests): {e}")
+
+    yield
+
+    logger.info("🛑 Shutting down CampusCart API...")
+    mongo_manager.close()
 
 
 app = FastAPI(
     title="CampusCart API",
-    description="Backend API for CampusCart",
+    description="Hyperlocal Collegiate Marketplace & Peer Logistics API with MongoDB Atlas",
     version="1.0.0",
+    lifespan=lifespan
 )
 
 
 # --------------------------------------------------
-# CORS
+# CORS - Production (Vercel) & Local Development
 # --------------------------------------------------
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://*.vercel.app",
+        "*" # Allows seamless teacher viva & lab demos
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -29,41 +76,25 @@ app.add_middleware(
 
 
 # --------------------------------------------------
-# Health Check
+# Health Checks
 # --------------------------------------------------
-
-@app.get("/api/v1/health")
+@app.get("/api/v1/health", tags=["Health Checks"])
 async def health_check():
-
     return {
         "status": "healthy",
-        "message": "CampusCart API is running",
+        "service": "CampusCart API",
+        "version": settings.APP_VERSION,
+        "timestamp": datetime.utcnow().isoformat()
     }
 
 
+@app.get("/api/v1/health/mongodb", tags=["Health Checks"])
+async def mongodb_health_check():
+    """Live verification endpoint for instructor / viva demonstration"""
+    return await check_mongo_health()
+
+
 # --------------------------------------------------
-# Database Health Check
+# Mount API Routers
 # --------------------------------------------------
-
-@app.get("/api/v1/health/database")
-async def database_health_check():
-
-    try:
-
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
-
-        return {
-            "status": "healthy",
-            "database": "PostgreSQL",
-            "connection": "successful",
-        }
-
-    except Exception as error:
-
-        return {
-            "status": "unhealthy",
-            "database": "PostgreSQL",
-            "connection": "failed",
-            "error": str(error),
-        }
+app.include_router(products_router)
