@@ -56,7 +56,7 @@ async def list_products(
             {"category": {"$regex": search, "$options": "i"}}
         ]
 
-    cursor = db["products"].find(query).skip(skip).limit(limit)
+    cursor = db["products"].find(query).sort("_id", -1).skip(skip).limit(limit)
     products = []
     async for doc in cursor:
         products.append(serialize_doc(doc))
@@ -130,12 +130,10 @@ async def update_product(product_id: str, update_data: ProductUpdate):
 async def delete_product(product_id: str):
     db = get_database()
     result = await db["products"].delete_one(get_id_filter(product_id))
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Product not found to delete")
-
     return {
         "id": product_id,
-        "message": "Product deleted from MongoDB successfully"
+        "deleted": result.deleted_count > 0,
+        "message": "Product deleted from MongoDB successfully" if result.deleted_count > 0 else "Product already deleted or not found"
     }
 
 

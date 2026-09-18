@@ -83,7 +83,7 @@ function App() {
   const [mongoProducts, setMongoProducts] = useState([]);
   const [dbStatus, setDbStatus] = useState("connecting"); // 'connected', 'offline', 'connecting'
 
-  // Fetch live products from MongoDB Atlas on mount with graceful offline fallback
+  // Live multi-user synchronization: fetches on mount, login/logout, route change, and 5s polling interval
   useEffect(() => {
     let isMounted = true;
     async function loadMongoDBData() {
@@ -99,15 +99,19 @@ function App() {
           setDbStatus("connected");
         }
       } catch (err) {
-        console.warn("MongoDB startup fetch error:", err);
+        console.warn("MongoDB live sync error:", err);
         if (isMounted) setDbStatus("offline");
       }
     }
+
     loadMongoDBData();
+    const syncInterval = setInterval(loadMongoDBData, 5000); // Poll every 5s for live cross-user updates
+
     return () => {
       isMounted = false;
+      clearInterval(syncInterval);
     };
-  }, []);
+  }, [isLoggedIn, location.pathname]);
 
   const [deletedProductIds, setDeletedProductIds] = useState(() => {
     try {
@@ -140,18 +144,25 @@ function App() {
   });
 
   const allProducts = useMemo(() => {
-    // Prefer real MongoDB Atlas items; fallback to mock data if offline/empty
-    const baseProducts = (mongoProducts && mongoProducts.length > 0)
-      ? mongoProducts
-      : (CAMPUS_DATA?.products || []);
+    // When live MongoDB Atlas data is connected, it is the authoritative Single Source of Truth!
+    // Every user who logs in or visits sees the exact live items and updates from other users.
+    if (mongoProducts && mongoProducts.length > 0) {
+      return mongoProducts
+        .filter((product) => !deletedProductIds.includes(product.id))
+        .map((product) => ({
+          ...product,
+          ...(productOverrides[product.id] || {}),
+        }));
+    }
 
+    // Offline / Safe Fallback mode when backend is sleeping or unreachable
+    const baseProducts = CAMPUS_DATA?.products || [];
     const combined = [
       ...baseProducts,
       ...(extraProducts || []),
       ...(localProducts || []),
     ];
 
-    // Deduplicate by ID to prevent key collisions
     const uniqueMap = new Map();
     for (const item of combined) {
       if (item && item.id && !uniqueMap.has(item.id)) {
@@ -687,6 +698,41 @@ window.localStorage.setItem(
       return nextOrders;
     });
 
+    // Delete purchased item(s) immediately from the marketplace page & database upon QR generation
+    const purchasedIds = cart.map((item) => item.id);
+
+    setDeletedProductIds((previousIds) => {
+      const updatedIds = [...new Set([...previousIds, ...purchasedIds])];
+      window.localStorage.setItem(
+        "campuscart-deleted-products",
+        JSON.stringify(updatedIds),
+      );
+      return updatedIds;
+    });
+
+    setMongoProducts((prev) =>
+      prev.filter((product) => !purchasedIds.includes(product.id))
+    );
+
+    setExtraProducts((prev) => {
+      const updated = prev.filter((product) => !purchasedIds.includes(product.id));
+      window.localStorage.setItem("campuscart-products", JSON.stringify(updated));
+      return updated;
+    });
+
+    setLocalProducts((prev) =>
+      prev.filter((product) => !purchasedIds.includes(product.id))
+    );
+
+    // Permanently remove purchased item(s) from live MongoDB Atlas backend
+    purchasedIds.forEach(async (id) => {
+      try {
+        await deleteProductOnBackend(id);
+      } catch (err) {
+        console.warn("Could not delete purchased product from MongoDB Atlas:", err);
+      }
+    });
+
     setCart([]);
 
     setQrModalItem(newOrder);
@@ -697,7 +743,7 @@ window.localStorage.setItem(
       origin: { y: 0.6 },
     });
 
-    showToast(`🎉 Order ${orderId} created successfully!`);
+    showToast(`🎉 Order ${orderId} created! Item removed from marketplace.`);
   };
   return (
     <div className="relative min-h-screen flex flex-col bg-[#fcfcfd]">
