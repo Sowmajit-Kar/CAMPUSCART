@@ -49,3 +49,7 @@ Thumbs.db
 
 tests
 .venv
+scratch/
+PRESENTATION_DECK.md
+*.pptx
+
