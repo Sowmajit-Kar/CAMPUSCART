@@ -3,7 +3,7 @@
 // =============================================================================
 import { CAMPUS_DATA } from "../data/mockData";
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://campuscart-6m90.onrender.com";
 
 /**
  * Fetch products from live MongoDB backend with fallback to mock data
