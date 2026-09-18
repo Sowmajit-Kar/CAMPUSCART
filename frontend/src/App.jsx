@@ -21,6 +21,13 @@ import WishlistView from "./components/WishListView.jsx";
 import OrderHistory from "./components/OrderHistory";
 import WestBengalMapModal from "./components/WestBengalMapModal";
 import SellerDashboard from "./components/SellerDashboard.jsx";
+import {
+  fetchProductsFromBackend,
+  createProductOnBackend,
+  updateProductOnBackend,
+  deleteProductOnBackend,
+  checkBackendHealth,
+} from "./services/api";
 
 function App() {
   const navigate = useNavigate();
@@ -73,56 +80,98 @@ function App() {
   const [navMenuOpen, setNavMenuOpen] = useState(false);
   const [localProducts, setLocalProducts] = useState([]);
   const [productToOpen, setProductToOpen] = useState(null);
+  const [mongoProducts, setMongoProducts] = useState([]);
+  const [dbStatus, setDbStatus] = useState("connecting"); // 'connected', 'offline', 'connecting'
 
+  // Fetch live products from MongoDB Atlas on mount with graceful offline fallback
+  useEffect(() => {
+    let isMounted = true;
+    async function loadMongoDBData() {
+      try {
+        const health = await checkBackendHealth();
+        if (isMounted) {
+          setDbStatus(health.connected ? "connected" : "offline");
+        }
+
+        const res = await fetchProductsFromBackend();
+        if (isMounted && res.success && Array.isArray(res.products) && res.products.length > 0) {
+          setMongoProducts(res.products);
+          setDbStatus("connected");
+        }
+      } catch (err) {
+        console.warn("MongoDB startup fetch error:", err);
+        if (isMounted) setDbStatus("offline");
+      }
+    }
+    loadMongoDBData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const [deletedProductIds, setDeletedProductIds] = useState(() => {
-  try {
-    return JSON.parse(
-      window.localStorage.getItem("campuscart-deleted-products") || "[]"
-    );
-  } catch {
-    return [];
-  }
-});
-  const [inventoryOverrides, setInventoryOverrides] = useState(() => {
-  try {
-    return JSON.parse(
-      window.localStorage.getItem("campuscart-inventory") || "{}"
-    );
-  } catch {
-    return {};
-  }
-});
+    try {
+      return JSON.parse(
+        window.localStorage.getItem("campuscart-deleted-products") || "[]"
+      );
+    } catch {
+      return [];
+    }
+  });
 
-const [productOverrides, setProductOverrides] = useState(() => {
-  try {
-    return JSON.parse(
-      window.localStorage.getItem("campuscart-product-overrides") || "{}"
-    );
-  } catch {
-    return {};
-  }
-});
+  const [inventoryOverrides, setInventoryOverrides] = useState(() => {
+    try {
+      return JSON.parse(
+        window.localStorage.getItem("campuscart-inventory") || "{}"
+      );
+    } catch {
+      return {};
+    }
+  });
+
+  const [productOverrides, setProductOverrides] = useState(() => {
+    try {
+      return JSON.parse(
+        window.localStorage.getItem("campuscart-product-overrides") || "{}"
+      );
+    } catch {
+      return {};
+    }
+  });
 
   const allProducts = useMemo(() => {
-  const baseProducts = [
-    ...(CAMPUS_DATA?.products || []),
-    ...(extraProducts || []),
-    ...(localProducts || []),
-  ];
+    // Prefer real MongoDB Atlas items; fallback to mock data if offline/empty
+    const baseProducts = (mongoProducts && mongoProducts.length > 0)
+      ? mongoProducts
+      : (CAMPUS_DATA?.products || []);
 
-  return baseProducts
-    .filter((product) => !deletedProductIds.includes(product.id))
-    .map((product) => ({
-      ...product,
-      ...(productOverrides[product.id] || {}),
-    }));
-}, [
-  extraProducts,
-  localProducts,
-  deletedProductIds,
-  productOverrides,
-]);
+    const combined = [
+      ...baseProducts,
+      ...(extraProducts || []),
+      ...(localProducts || []),
+    ];
+
+    // Deduplicate by ID to prevent key collisions
+    const uniqueMap = new Map();
+    for (const item of combined) {
+      if (item && item.id && !uniqueMap.has(item.id)) {
+        uniqueMap.set(item.id, item);
+      }
+    }
+
+    return Array.from(uniqueMap.values())
+      .filter((product) => !deletedProductIds.includes(product.id))
+      .map((product) => ({
+        ...product,
+        ...(productOverrides[product.id] || {}),
+      }));
+  }, [
+    mongoProducts,
+    extraProducts,
+    localProducts,
+    deletedProductIds,
+    productOverrides,
+  ]);
 
   const getProductStock = (product) => {
   const originalStock = Math.max(
@@ -312,132 +361,163 @@ const [productOverrides, setProductOverrides] = useState(() => {
     }
   };
 
-  const handlePublishProduct = (newProduct) => {
+  const handlePublishProduct = async (newProduct) => {
+    // 1. Instant optimistic UI update
     setExtraProducts((previousProducts) => {
       const updatedProducts = [newProduct, ...previousProducts];
-
       window.localStorage.setItem(
         "campuscart-products",
         JSON.stringify(updatedProducts),
       );
-
       return updatedProducts;
     });
 
     navigate("/marketplace");
+    showToast("Publishing listing... Syncing to MongoDB Atlas");
+
+    // 2. Call live MongoDB backend API
+    try {
+      const result = await createProductOnBackend(newProduct);
+      if (result.success) {
+        showToast("🟢 Successfully saved in MongoDB Atlas!");
+        setDbStatus("connected");
+        if (result.data?.id) {
+          const backendId = result.data.id;
+          setExtraProducts((prev) =>
+            prev.map((p) => (p.id === newProduct.id ? { ...p, id: backendId } : p))
+          );
+        }
+      } else {
+        showToast("⚠️ Saved locally (MongoDB sleeping / offline).");
+      }
+    } catch {
+      showToast("⚠️ Saved locally (MongoDB connection error).");
+    }
   };
 
-  const handleEditProduct = (updatedProduct) => {
-  setProductOverrides((previousOverrides) => {
-    const updatedOverrides = {
-      ...previousOverrides,
-      [updatedProduct.id]: updatedProduct,
-    };
+  const handleEditProduct = async (updatedProduct) => {
+    // 1. Instant optimistic UI update
+    setProductOverrides((previousOverrides) => {
+      const updatedOverrides = {
+        ...previousOverrides,
+        [updatedProduct.id]: updatedProduct,
+      };
+      window.localStorage.setItem(
+        "campuscart-product-overrides",
+        JSON.stringify(updatedOverrides)
+      );
+      return updatedOverrides;
+    });
 
-    window.localStorage.setItem(
-      "campuscart-product-overrides",
-      JSON.stringify(updatedOverrides)
+    setExtraProducts((previousProducts) => {
+      const exists = previousProducts.some(
+        (product) => product.id === updatedProduct.id
+      );
+      if (!exists) return previousProducts;
+      const updatedProducts = previousProducts.map((product) =>
+        product.id === updatedProduct.id ? updatedProduct : product
+      );
+      window.localStorage.setItem(
+        "campuscart-products",
+        JSON.stringify(updatedProducts)
+      );
+      return updatedProducts;
+    });
+
+    setMongoProducts((previousProducts) =>
+      previousProducts.map((product) =>
+        product.id === updatedProduct.id ? { ...product, ...updatedProduct } : product
+      )
     );
 
-    return updatedOverrides;
-  });
-
-  // Also update seller-created products if they exist in extraProducts
-  setExtraProducts((previousProducts) => {
-    const exists = previousProducts.some(
-      (product) => product.id === updatedProduct.id
+    setLocalProducts((previousProducts) =>
+      previousProducts.map((product) =>
+        product.id === updatedProduct.id ? updatedProduct : product
+      )
     );
 
-    if (!exists) {
-      return previousProducts;
+    if (updatedProduct.stock !== undefined) {
+      setInventoryOverrides((previous) => {
+        const updatedInventory = {
+          ...previous,
+          [updatedProduct.id]: Number(updatedProduct.stock) || 0,
+        };
+        window.localStorage.setItem(
+          "campuscart-inventory",
+          JSON.stringify(updatedInventory)
+        );
+        return updatedInventory;
+      });
     }
 
-    const updatedProducts = previousProducts.map((product) =>
-      product.id === updatedProduct.id
-        ? updatedProduct
-        : product
+    showToast("Updating listing in MongoDB Atlas...");
+
+    // 2. Call live MongoDB backend API
+    try {
+      const result = await updateProductOnBackend(updatedProduct.id, updatedProduct);
+      if (result.success) {
+        showToast("🟢 Listing updated in MongoDB Atlas!");
+        setDbStatus("connected");
+      } else {
+        showToast("⚠️ Updated locally (MongoDB sleeping / offline).");
+      }
+    } catch {
+      showToast("⚠️ Updated locally (MongoDB connection error).");
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    // 1. Instant optimistic UI update
+    setDeletedProductIds((previousIds) => {
+      const updatedIds = [...new Set([...previousIds, productId])];
+      window.localStorage.setItem(
+        "campuscart-deleted-products",
+        JSON.stringify(updatedIds)
+      );
+      return updatedIds;
+    });
+
+    setExtraProducts((previousProducts) => {
+      const updatedProducts = previousProducts.filter(
+        (product) => product.id !== productId
+      );
+      window.localStorage.setItem(
+        "campuscart-products",
+        JSON.stringify(updatedProducts)
+      );
+      return updatedProducts;
+    });
+
+    setMongoProducts((prev) => prev.filter((product) => product.id !== productId));
+    setLocalProducts((previousProducts) =>
+      previousProducts.filter((product) => product.id !== productId)
     );
 
-    window.localStorage.setItem(
-      "campuscart-products",
-      JSON.stringify(updatedProducts)
-    );
-
-    return updatedProducts;
-  });
-
-  // Keep localProducts synchronized
-  setLocalProducts((previousProducts) =>
-    previousProducts.map((product) =>
-      product.id === updatedProduct.id
-        ? updatedProduct
-        : product
-    )
-  );
-
-  // Update inventory override
-  if (updatedProduct.stock !== undefined) {
     setInventoryOverrides((previous) => {
-      const updatedInventory = {
-        ...previous,
-        [updatedProduct.id]: Number(updatedProduct.stock) || 0,
-      };
-
+      const updated = { ...previous };
+      delete updated[productId];
       window.localStorage.setItem(
         "campuscart-inventory",
-        JSON.stringify(updatedInventory)
+        JSON.stringify(updated)
       );
-
-      return updatedInventory;
+      return updated;
     });
-  }
 
-  showToast("Product updated successfully.");
-};
+    showToast("Deleting listing from MongoDB Atlas...");
 
- const handleDeleteProduct = (productId) => {
-  setDeletedProductIds((previousIds) => {
-    const updatedIds = [...new Set([...previousIds, productId])];
-
-    window.localStorage.setItem(
-      "campuscart-deleted-products",
-      JSON.stringify(updatedIds)
-    );
-
-    return updatedIds;
-  });
-
-  setExtraProducts((previousProducts) => {
-    const updatedProducts = previousProducts.filter(
-      (product) => product.id !== productId
-    );
-
-    window.localStorage.setItem(
-      "campuscart-products",
-      JSON.stringify(updatedProducts)
-    );
-
-    return updatedProducts;
-  });
-
-  setLocalProducts((previousProducts) =>
-    previousProducts.filter((product) => product.id !== productId)
-  );
-
-  setInventoryOverrides((previous) => {
-    const updated = { ...previous };
-    delete updated[productId];
-
-    window.localStorage.setItem(
-      "campuscart-inventory",
-      JSON.stringify(updated)
-    );
-
-    return updated;
-  });
-
-  showToast("Listing deleted successfully.");
-};
+    // 2. Call live MongoDB backend API
+    try {
+      const result = await deleteProductOnBackend(productId);
+      if (result.success) {
+        showToast("🗑️ Listing deleted from MongoDB Atlas!");
+        setDbStatus("connected");
+      } else {
+        showToast("⚠️ Deleted locally (MongoDB sleeping / offline).");
+      }
+    } catch {
+      showToast("⚠️ Deleted locally (MongoDB connection error).");
+    }
+  };
 
   const increaseCartQuantity = (id) => {
     setCart((previousCart) =>
@@ -728,6 +808,34 @@ window.localStorage.setItem(
 
           {/* Right Menu / Cart & User Actions */}
           <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+            {/* Live MongoDB Atlas Cloud Indicator (for Teacher Viva / Live Demo) */}
+            <a
+              href={`${import.meta.env.VITE_API_URL || "https://campuscart-6m90.onrender.com"}/docs`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono border transition flex-shrink-0 cursor-pointer ${
+                dbStatus === "connected"
+                  ? "bg-emerald-950/70 border-emerald-500/50 text-emerald-400 hover:bg-emerald-900/80"
+                  : dbStatus === "connecting"
+                  ? "bg-amber-950/70 border-amber-500/50 text-amber-400 hover:bg-amber-900/80"
+                  : "bg-neutral-900/80 border-neutral-700 text-neutral-400 hover:bg-neutral-800"
+              }`}
+              title="FastAPI + MongoDB Atlas Live Backend (Click to open Swagger Docs)"
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  dbStatus === "connected"
+                    ? "bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"
+                    : dbStatus === "connecting"
+                    ? "bg-amber-400 animate-ping"
+                    : "bg-neutral-500"
+                }`}
+              ></span>
+              <span className="font-bold">
+                {dbStatus === "connected" ? "MongoDB Atlas" : dbStatus === "connecting" ? "Connecting..." : "DB Offline"}
+              </span>
+            </a>
+
             {/* West Bengal College Zonal Map Button (Left of Cart) */}
             <button
               onClick={() => setIsMapOpen(true)}

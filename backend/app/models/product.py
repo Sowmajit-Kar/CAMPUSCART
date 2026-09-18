@@ -4,6 +4,7 @@ from datetime import datetime
 
 
 class SellerInfo(BaseModel):
+    model_config = {"extra": "ignore"}
     name: str = "Campus Senior"
     email: Optional[str] = "senior@campus.edu"
     avatar: Optional[str] = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80"
@@ -13,6 +14,7 @@ class SellerInfo(BaseModel):
 
 
 class ProductBase(BaseModel):
+    model_config = {"extra": "ignore"}
     title: str = Field(..., example="Lab Notebook")
     category: str = Field(..., example="Notes & Material")
     stream: Optional[str] = Field("engineering", example="engineering") # 'medical', 'engineering', 'general'
@@ -33,6 +35,7 @@ class ProductCreate(ProductBase):
 
 
 class ProductUpdate(BaseModel):
+    model_config = {"extra": "ignore"}
     title: Optional[str] = None
     category: Optional[str] = None
     stream: Optional[str] = None

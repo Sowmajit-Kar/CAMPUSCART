@@ -13,9 +13,16 @@ router = APIRouter(prefix="/api/v1/products", tags=["Products & Inventory CRUD"]
 def serialize_doc(doc: dict) -> dict:
     if not doc:
         return None
-    doc["id"] = str(doc["_id"])
-    del doc["_id"]
+    doc["id"] = str(doc.get("_id", doc.get("id", "")))
+    if "_id" in doc:
+        del doc["_id"]
     return doc
+
+
+def get_id_filter(product_id: str) -> dict:
+    if ObjectId.is_valid(product_id):
+        return {"$or": [{"_id": ObjectId(product_id)}, {"id": product_id}, {"_id": product_id}]}
+    return {"$or": [{"id": product_id}, {"_id": product_id}]}
 
 
 # -----------------------------------------------------------------------------
@@ -61,11 +68,8 @@ async def list_products(
 # -----------------------------------------------------------------------------
 @router.get("/{product_id}", response_model=ProductResponse)
 async def get_product(product_id: str):
-    if not ObjectId.is_valid(product_id):
-        raise HTTPException(status_code=400, detail="Invalid MongoDB ObjectId format")
-
     db = get_database()
-    doc = await db["products"].find_one({"_id": ObjectId(product_id)})
+    doc = await db["products"].find_one(get_id_filter(product_id))
     if not doc:
         raise HTTPException(status_code=404, detail="Product not found in database")
     return serialize_doc(doc)
@@ -97,9 +101,6 @@ async def create_product(product: ProductCreate):
 # -----------------------------------------------------------------------------
 @router.put("/{product_id}")
 async def update_product(product_id: str, update_data: ProductUpdate):
-    if not ObjectId.is_valid(product_id):
-        raise HTTPException(status_code=400, detail="Invalid MongoDB ObjectId format")
-
     db = get_database()
     fields = {k: v for k, v in update_data.dict().items() if v is not None}
     if not fields:
@@ -108,7 +109,7 @@ async def update_product(product_id: str, update_data: ProductUpdate):
     fields["updated_at"] = datetime.utcnow().isoformat()
 
     result = await db["products"].update_one(
-        {"_id": ObjectId(product_id)},
+        get_id_filter(product_id),
         {"$set": fields}
     )
 
@@ -127,11 +128,8 @@ async def update_product(product_id: str, update_data: ProductUpdate):
 # -----------------------------------------------------------------------------
 @router.delete("/{product_id}")
 async def delete_product(product_id: str):
-    if not ObjectId.is_valid(product_id):
-        raise HTTPException(status_code=400, detail="Invalid MongoDB ObjectId format")
-
     db = get_database()
-    result = await db["products"].delete_one({"_id": ObjectId(product_id)})
+    result = await db["products"].delete_one(get_id_filter(product_id))
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Product not found to delete")
 
