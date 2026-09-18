@@ -1102,6 +1102,7 @@ window.localStorage.setItem(
             path="/home"
             element={
               <HomrPageIdeaView
+                products={allProducts}
                 onExplore={() => navigateTo("/marketplace")}
                 onAddToCart={addToCart}
                 onOpenSeller={setSelectedSeller}
@@ -1115,6 +1116,7 @@ window.localStorage.setItem(
             path="/marketplace"
             element={
               <MarketplaceFullView
+                products={allProducts}
                 onAddToCart={addToCart}
                 onOpenSeller={setSelectedSeller}
                 onStartChat={startChat}

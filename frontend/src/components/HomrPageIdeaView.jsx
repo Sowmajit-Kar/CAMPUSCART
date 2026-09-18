@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { CAMPUS_DATA } from '../data/mockData';
 import CircularWheelShowcase from './CircularWheelShowcase';
 
-function HomrPageIdeaView({ onExplore, onAddToCart, onOpenSeller, onStartChat, onOpenQr, onOpenLogin }) {
+function HomrPageIdeaView({ products = [], onExplore, onAddToCart, onOpenSeller, onStartChat, onOpenQr, onOpenLogin }) {
+      const displayProducts = (products && products.length > 0) ? products : (window.CAMPUS_DATA?.products || []);
       const [activeFaq, setActiveFaq] = useState(0);
 
       const faqs = [
@@ -286,12 +287,12 @@ function HomrPageIdeaView({ onExplore, onAddToCart, onOpenSeller, onStartChat, o
                   onClick={onExplore}
                   className="text-xs font-bold font-display uppercase tracking-wider text-neutral-900 hover:opacity-75 flex items-center gap-1"
                 >
-                  View All Listings ({window.CAMPUS_DATA.products.length}) →
+                  View All Listings ({displayProducts.length}) →
                 </button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {window.CAMPUS_DATA.products.slice(0, 3).map(item => (
+                {displayProducts.slice(0, 3).map(item => (
                   <div key={item.id} className="bg-white rounded-2xl overflow-hidden border border-neutral-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
                     <div className="aspect-[4/3] bg-neutral-100 overflow-hidden relative">
                       <img src={item.image} alt={item.title} className="w-full h-full object-cover" />

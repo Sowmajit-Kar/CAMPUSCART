@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { CAMPUS_DATA } from '../data/mockData';
 
 function MarketplaceFullView({
+  products: propProducts = [],
   extraProducts = [],
   onAddToCart,
   onOpenSeller,
@@ -33,13 +34,18 @@ const [quantity, setQuantity] = useState(1);
   }
 }, [initialProduct]);
 
-  const products = [
-  ...(extraProducts || []),
-  ...(window.CAMPUS_DATA?.products || [])
-].map((product) => ({
-  ...product,
-  ...(productOverrides[product.id] || {}),
-}));
+  const products = useMemo(() => {
+    if (propProducts && propProducts.length > 0) {
+      return propProducts;
+    }
+    return [
+      ...(extraProducts || []),
+      ...(window.CAMPUS_DATA?.products || [])
+    ].map((product) => ({
+      ...product,
+      ...(productOverrides[product.id] || {}),
+    }));
+  }, [propProducts, extraProducts, productOverrides]);
 
 const getProductStock = (product) => {
   const originalStock = Math.max(
