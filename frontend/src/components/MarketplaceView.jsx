@@ -11,7 +11,9 @@ function MarketplaceFullView({
    onAddToWishlist,
   onRemoveFromWishlist,
   wishlistItems = [],
-  initialProduct = null
+  initialProduct = null,
+  inventoryOverrides = {},
+  productOverrides = {},
 
 }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,61 +22,113 @@ const [selectedMode, setSelectedMode] = useState('ALL');
 const [minPrice, setMinPrice] = useState('');
 const [maxPrice, setMaxPrice] = useState('');
 const [selectedProduct, setSelectedProduct] = useState(null);
+const [sortOption, setSortOption] = useState('DEFAULT');
+const [quantity, setQuantity] = useState(1);
+
 
   useEffect(() => {
-    if (initialProduct) {
-      setSelectedProduct(initialProduct);
-    }
-  }, [initialProduct]);
+  if (initialProduct) {
+    setSelectedProduct(initialProduct);
+    setQuantity(1);
+  }
+}, [initialProduct]);
 
   const products = [
   ...(extraProducts || []),
   ...(window.CAMPUS_DATA?.products || [])
-];
+].map((product) => ({
+  ...product,
+  ...(productOverrides[product.id] || {}),
+}));
+
+const getProductStock = (product) => {
+  const originalStock = Math.max(
+    0,
+    Number(product?.stock) || 0
+  );
+
+  if (
+    Object.prototype.hasOwnProperty.call(
+      inventoryOverrides,
+      product.id
+    )
+  ) {
+    return Math.max(
+      0,
+      Number(inventoryOverrides[product.id]) || 0
+    );
+  }
+
+  return originalStock;
+};
 
   const categories = useMemo(() => {
     return ['ALL', ...new Set(products.map(product => product.category))];
   }, [products]);
 
   const filteredProducts = useMemo(() => {
-    return products.filter(product => {
-      const query = searchQuery.toLowerCase().trim();
+  const filtered = products.filter(product => {
+    const query = searchQuery.toLowerCase().trim();
 
-      const matchesSearch =
-        !query ||
-        product.title.toLowerCase().includes(query) ||
-        product.description.toLowerCase().includes(query) ||
-        product.category.toLowerCase().includes(query) ||
-        product.seller.name.toLowerCase().includes(query);
+    const matchesSearch =
+      !query ||
+      product.title?.toLowerCase().includes(query) ||
+      product.description?.toLowerCase().includes(query) ||
+      product.category?.toLowerCase().includes(query) ||
+      product.seller?.name?.toLowerCase().includes(query);
 
-      const matchesCategory =
-        selectedCategory === 'ALL' ||
-        product.category === selectedCategory;
+    const matchesCategory =
+      selectedCategory === 'ALL' ||
+      product.category === selectedCategory;
 
-      const price = Number(product.price) || 0;
+    const matchesMode =
+      selectedMode === 'ALL' ||
+      product.mode === selectedMode;
 
-const matchesMode =
-  selectedMode === 'ALL' ||
-  product.mode === selectedMode;
+    const price = Number(product.price) || 0;
 
-const matchesMinPrice =
-  minPrice === '' || price >= Number(minPrice);
+    const matchesMinPrice =
+      minPrice === '' || price >= Number(minPrice);
 
-const matchesMaxPrice =
-  maxPrice === '' || price <= Number(maxPrice);
+    const matchesMaxPrice =
+      maxPrice === '' || price <= Number(maxPrice);
 
-return (
-  matchesSearch &&
-  matchesCategory &&
-  matchesMode &&
-  matchesMinPrice &&
-  matchesMaxPrice
-);
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesMode &&
+      matchesMinPrice &&
+      matchesMaxPrice
+    );
+  });
 
-      
-  }, [products, searchQuery, selectedCategory, selectedMode,minPrice,
-  maxPrice,]);
-  })
+  return [...filtered].sort((a, b) => {
+    if (sortOption === 'PRICE_LOW') {
+      return Number(a.price || 0) - Number(b.price || 0);
+    }
+
+    if (sortOption === 'PRICE_HIGH') {
+      return Number(b.price || 0) - Number(a.price || 0);
+    }
+
+    if (sortOption === 'RATING') {
+      return (
+        Number(b.seller?.rating || 0) -
+        Number(a.seller?.rating || 0)
+      );
+    }
+
+    return 0;
+  });
+}, [
+  products,
+  searchQuery,
+  selectedCategory,
+  selectedMode,
+  minPrice,
+  maxPrice,
+  sortOption,
+]);
 
   const getActionLabel = mode => {
     if (mode === 'RENT') return 'Rent Item';
@@ -84,13 +138,18 @@ return (
 
   if (selectedProduct) {
     const product = selectedProduct;
+    const currentStock = getProductStock(product);
   const isWishlisted = wishlistItems.some(
   item => item.id === product.id
     );
     return (
       <section className="max-w-7xl mx-auto px-6 sm:px-12 pt-32 pb-20">
         <button
-          onClick={() => setSelectedProduct(null)}
+          onClick={() =>{ 
+            setSelectedProduct(null);
+            setQuantity(1);
+
+          }}
           className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-neutral-500 hover:text-neutral-950 transition"
         >
           ← Back to Marketplace
@@ -166,6 +225,24 @@ return (
                   Rental rate: {product.rentalRate}
                 </p>
               )}
+
+              {product.mode === "BUY" && (
+  <div
+    className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${
+      currentStock === 0
+        ? "bg-red-50 text-red-700"
+        : currentStock <= 3
+        ? "bg-amber-50 text-amber-700"
+        : "bg-emerald-50 text-emerald-700"
+    }`}
+  >
+    {currentStock === 0
+      ? "Out of Stock"
+      : currentStock <= 3
+      ? `Only ${currentStock} left`
+      : `${currentStock} available`}
+  </div>
+)}
             </div>
 
             <div className="border-t border-b border-neutral-200 py-5">
@@ -206,36 +283,94 @@ return (
               </div>
             </div>
 
-            {/* Main actions */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                onClick={() => onAddToCart(product)}
-                className="rounded-xl bg-neutral-950 text-white py-3 px-5 font-bold hover:bg-neutral-800 transition"
-              >
-                {getActionLabel(product.mode)}
-              </button>
+            {/* Quantity + Main Actions */}
+<div className="space-y-4">
+  {product.mode === "BUY" && (
+    <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
+          Quantity
+        </p>
 
-              <button
-                onClick={() => onStartChat(product.seller, product)}
-                className="rounded-xl bg-neutral-100 text-neutral-900 py-3 px-5 font-bold hover:bg-neutral-200 transition"
-              >
-                Chat with Seller
-              </button>
+        <p className="mt-1 text-xs text-neutral-500">
+          Select how many you want
+        </p>
+      </div>
 
-              <button
-                onClick={() => onOpenQr(product)}
-                className="rounded-xl bg-emerald-600 text-white py-3 px-5 font-bold hover:bg-emerald-700 transition"
-              >
-                Generate QR Token
-              </button>
+      <div className="flex items-center rounded-xl border border-neutral-200 bg-white">
+        <button
+          type="button"
+          onClick={() =>
+            setQuantity((current) => Math.max(1, current - 1))
+          }
+          disabled={quantity <= 1}
+          className="flex h-10 w-10 items-center justify-center rounded-l-xl text-lg font-bold text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30"
+          aria-label="Decrease quantity"
+        >
+          −
+        </button>
 
-              <button
-                onClick={() => onOpenSeller(product.seller)}
-                className="rounded-xl border border-neutral-200 bg-white text-neutral-900 py-3 px-5 font-bold hover:bg-neutral-100 transition"
-              >
-                View Seller Profile
-              </button>
-            </div>
+        <span className="flex h-10 min-w-12 items-center justify-center border-x border-neutral-200 px-4 text-sm font-black text-neutral-950">
+          {quantity}
+        </span>
+
+        <button
+  type="button"
+  onClick={() => {
+    if (quantity >= currentStock) {
+      return;
+    }
+
+    setQuantity((current) => current + 1);
+  }}
+  disabled={
+    currentStock === 0 ||
+    quantity >= currentStock
+  }
+  className="flex h-10 w-10 items-center justify-center rounded-r-xl text-lg font-bold text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30"
+  aria-label="Increase quantity"
+>
+  +
+</button>
+      </div>
+    </div>
+  )}
+
+  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <button
+      onClick={() => {
+        onAddToCart(product, quantity);
+        setQuantity(1);
+      }}
+      className="rounded-xl bg-neutral-950 px-5 py-3 font-bold text-white transition hover:bg-neutral-800"
+    >
+      {getActionLabel(product.mode)}
+    </button>
+
+    <button
+      onClick={() =>
+        onStartChat(product.seller, product)
+      }
+      className="rounded-xl bg-neutral-100 px-5 py-3 font-bold text-neutral-900 transition hover:bg-neutral-200"
+    >
+      Chat with Seller
+    </button>
+
+    <button
+      onClick={() => onOpenQr(product)}
+      className="rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white transition hover:bg-emerald-700"
+    >
+      Generate QR Token
+    </button>
+
+    <button
+      onClick={() => onOpenSeller(product.seller)}
+      className="rounded-xl border border-neutral-200 bg-white px-5 py-3 font-bold text-neutral-900 transition hover:bg-neutral-100"
+    >
+      View Seller Profile
+    </button>
+  </div>
+</div>
           </div>
         </div>
 
@@ -322,7 +457,7 @@ return (
       </div>
 
       {/* Search and filters */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
   <input
     type="text"
     value={searchQuery}
@@ -330,6 +465,17 @@ return (
     placeholder="Search books, calculators, electronics..."
     className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
   />
+
+  <select
+  value={sortOption}
+  onChange={event => setSortOption(event.target.value)}
+  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950"
+>
+  <option value="DEFAULT">Sort By</option>
+  <option value="PRICE_LOW">Price: Low to High</option>
+  <option value="PRICE_HIGH">Price: High to Low</option>
+  <option value="RATING">Highest Seller Rating</option>
+</select>
 
   <select
     value={selectedCategory}
@@ -388,7 +534,8 @@ return (
   selectedCategory !== 'ALL' ||
   selectedMode !== 'ALL' ||
   minPrice !== '' ||
-  maxPrice !== ''
+  maxPrice !== '' ||
+  sortOption !== 'DEFAULT'
 ) && (
           <button
             onClick={() => {
@@ -397,6 +544,7 @@ return (
   setSelectedMode('ALL');
   setMinPrice('');
   setMaxPrice('');
+  setSortOption('DEFAULT');
 }}
             className="ml-2 px-4 py-2 rounded-full text-xs font-bold border border-neutral-200 text-neutral-600 hover:bg-neutral-100"
           >
@@ -429,7 +577,7 @@ return (
                 className="bg-white rounded-3xl overflow-hidden border border-neutral-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
               >
                 <button
-                  onClick={() => setSelectedProduct(product)}
+                  onClick={() => {setSelectedProduct(product);setQuantity(1);}}
                   className="aspect-[4/3] bg-neutral-100 overflow-hidden relative text-left"
                 >
                   <img
@@ -450,7 +598,7 @@ return (
                 <div className="p-5 flex-1 flex flex-col">
                   <div className="flex items-start justify-between gap-3">
                     <button
-                      onClick={() => setSelectedProduct(product)}
+                      onClick={() => {setSelectedProduct(product);setQuantity(1);}}
                       className="text-left"
                     >
                       <h3 className="font-display font-bold text-xl text-neutral-950 hover:underline">
@@ -499,7 +647,7 @@ return (
 
                   <div className="mt-5 pt-4 border-t border-neutral-100 grid grid-cols-2 gap-2">
                     <button
-                      onClick={() => setSelectedProduct(product)}
+                      onClick={() => {setSelectedProduct(product);setQuantity(1);}}
                       className="py-2.5 rounded-xl bg-neutral-950 text-white text-xs font-bold hover:bg-neutral-800 transition"
                     >
                       View Details

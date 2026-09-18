@@ -1,4 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import {
+  Routes,
+  Route,
+  useNavigate,
+  useLocation,
+  Navigate,
+} from "react-router-dom";
 import confetti from "canvas-confetti";
 import { CAMPUS_DATA } from "./data/mockData";
 import VideoShowcase from "./components/VideoShowcase";
@@ -13,13 +20,37 @@ import CartFullView from "./components/CartView";
 import WishlistView from "./components/WishListView.jsx";
 import OrderHistory from "./components/OrderHistory";
 import WestBengalMapModal from "./components/WestBengalMapModal";
+import SellerDashboard from "./components/SellerDashboard.jsx";
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    try {
+      return window.localStorage.getItem("campuscart-is-logged-in") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const storedUser = window.localStorage.getItem("campuscart-user");
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch {
+      return null;
+    }
+  });
   const [wishlistItems, setWishlistItems] = useState([]);
-  const [currentRoute, setCurrentRoute] = useState("overview"); // overview | home | marketplace | services | course | cart
   const [cart, setCart] = useState([]);
+  const [extraProducts, setExtraProducts] = useState(() => {
+    try {
+      return JSON.parse(
+        window.localStorage.getItem("campuscart-products") || "[]",
+      );
+    } catch {
+      return [];
+    }
+  });
 
   const [orders, setOrders] = useState(() => {
     try {
@@ -43,6 +74,79 @@ function App() {
   const [localProducts, setLocalProducts] = useState([]);
   const [productToOpen, setProductToOpen] = useState(null);
 
+
+  const [deletedProductIds, setDeletedProductIds] = useState(() => {
+  try {
+    return JSON.parse(
+      window.localStorage.getItem("campuscart-deleted-products") || "[]"
+    );
+  } catch {
+    return [];
+  }
+});
+  const [inventoryOverrides, setInventoryOverrides] = useState(() => {
+  try {
+    return JSON.parse(
+      window.localStorage.getItem("campuscart-inventory") || "{}"
+    );
+  } catch {
+    return {};
+  }
+});
+
+const [productOverrides, setProductOverrides] = useState(() => {
+  try {
+    return JSON.parse(
+      window.localStorage.getItem("campuscart-product-overrides") || "{}"
+    );
+  } catch {
+    return {};
+  }
+});
+
+  const allProducts = useMemo(() => {
+  const baseProducts = [
+    ...(CAMPUS_DATA?.products || []),
+    ...(extraProducts || []),
+    ...(localProducts || []),
+  ];
+
+  return baseProducts
+    .filter((product) => !deletedProductIds.includes(product.id))
+    .map((product) => ({
+      ...product,
+      ...(productOverrides[product.id] || {}),
+    }));
+}, [
+  extraProducts,
+  localProducts,
+  deletedProductIds,
+  productOverrides,
+]);
+
+  const getProductStock = (product) => {
+  const originalStock = Math.max(
+    0,
+    Number(product?.stock) || 0
+  );
+
+  if (
+    Object.prototype.hasOwnProperty.call(
+      inventoryOverrides,
+      product.id
+    )
+  ) {
+    return Math.max(
+      0,
+      Number(inventoryOverrides[product.id]) || 0
+    );
+  }
+
+  return originalStock;
+};
+  useEffect(() => {
+    window.localStorage.setItem("campuscart-cart", JSON.stringify(cart));
+  }, [cart]);
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
@@ -88,15 +192,20 @@ function App() {
   const handleLogin = (customEmail) => {
     const email = customEmail || loginEmail || "2024cs1089@campus.edu";
     const roll = email.split("@")[0].toUpperCase();
-    setIsLoggedIn(true);
-    setCurrentUser({
+    const userObj = {
       email: email,
       roll: roll,
       name: roll === "2024CS1089" ? "Aarav Patel" : "Verified Student",
       dept: "Computer Science & Engineering",
       hostel: "Hostel 4, Room 218",
-    });
-    setCurrentRoute("home");
+    };
+    setIsLoggedIn(true);
+    setCurrentUser(userObj);
+    try {
+      window.localStorage.setItem("campuscart-is-logged-in", "true");
+      window.localStorage.setItem("campuscart-user", JSON.stringify(userObj));
+    } catch {}
+    navigate("/home");
     setIsLoginOpen(false);
     if (window.confetti) {
       window.confetti({ particleCount: 80, spread: 65, origin: { y: 0.5 } });
@@ -109,34 +218,61 @@ function App() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setCurrentUser(null);
-    setCurrentRoute("overview");
+    try {
+      window.localStorage.removeItem("campuscart-is-logged-in");
+      window.localStorage.removeItem("campuscart-user");
+    } catch {}
+    navigate("/");
     showToast("👋 Signed out. Returned to CampusCart Overview.");
   };
 
-  const navigateTo = (route) => {
-    if (!isLoggedIn && route !== "overview") {
+  const navigateTo = (target) => {
+    let path = target;
+    if (target === "overview") path = "/";
+    else if (!target.startsWith("/")) path = `/${target}`;
+    if (path === "/course") path = "/courses";
+
+    if (!isLoggedIn && path !== "/") {
       setIsLoginOpen(true);
       showToast(
         "🔒 Please sign in with your college ID (@campus.edu) to access " +
-          route.toUpperCase(),
+          path.replace("/", "").toUpperCase(),
       );
       return;
     }
-    setCurrentRoute(route);
+    navigate(path);
     setNavMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const addToCart = (product) => {
+  const addToCart = (product, requestedQuantity = 1) => {
+    const stock = getProductStock(product);
+    const quantityToAdd = Math.max(1, Number(requestedQuantity) || 1);
+
     setCart((previousCart) => {
       const existingItem = previousCart.find((item) => item.id === product.id);
+
+      const currentQuantity = existingItem?.qty || 0;
+      const availableToAdd = stock - currentQuantity;
+
+      if (stock <= 0) {
+        showToast(`"${product.title}" is currently out of stock.`);
+        return previousCart;
+      }
+
+      if (availableToAdd <= 0) {
+        showToast(`"${product.title}" is already at the stock limit.`);
+        return previousCart;
+      }
+
+      const finalQuantityToAdd = Math.min(quantityToAdd, availableToAdd);
 
       if (existingItem) {
         return previousCart.map((item) =>
           item.id === product.id
             ? {
                 ...item,
-                qty: item.qty + 1,
+                qty: item.qty + finalQuantityToAdd,
               }
             : item,
         );
@@ -153,7 +289,7 @@ function App() {
           id: product.id,
           title: product.title,
           price: Number(product.price) || 0,
-          qty: 1,
+          qty: finalQuantityToAdd,
           image: product.image,
           seller: sellerName,
           pickupLocation:
@@ -164,37 +300,211 @@ function App() {
       ];
     });
 
-    showToast(`Added "${product.title}" to cart!`);
+    if (quantityToAdd > stock) {
+      showToast(
+        `Only ${stock} × "${product.title}" available. Added ${Math.min(
+          quantityToAdd,
+          stock,
+        )}.`,
+      );
+    } else {
+      showToast(`Added ${quantityToAdd} × "${product.title}" to cart!`);
+    }
   };
 
+  const handlePublishProduct = (newProduct) => {
+    setExtraProducts((previousProducts) => {
+      const updatedProducts = [newProduct, ...previousProducts];
+
+      window.localStorage.setItem(
+        "campuscart-products",
+        JSON.stringify(updatedProducts),
+      );
+
+      return updatedProducts;
+    });
+
+    navigate("/marketplace");
+  };
+
+  const handleEditProduct = (updatedProduct) => {
+  setProductOverrides((previousOverrides) => {
+    const updatedOverrides = {
+      ...previousOverrides,
+      [updatedProduct.id]: updatedProduct,
+    };
+
+    window.localStorage.setItem(
+      "campuscart-product-overrides",
+      JSON.stringify(updatedOverrides)
+    );
+
+    return updatedOverrides;
+  });
+
+  // Also update seller-created products if they exist in extraProducts
+  setExtraProducts((previousProducts) => {
+    const exists = previousProducts.some(
+      (product) => product.id === updatedProduct.id
+    );
+
+    if (!exists) {
+      return previousProducts;
+    }
+
+    const updatedProducts = previousProducts.map((product) =>
+      product.id === updatedProduct.id
+        ? updatedProduct
+        : product
+    );
+
+    window.localStorage.setItem(
+      "campuscart-products",
+      JSON.stringify(updatedProducts)
+    );
+
+    return updatedProducts;
+  });
+
+  // Keep localProducts synchronized
+  setLocalProducts((previousProducts) =>
+    previousProducts.map((product) =>
+      product.id === updatedProduct.id
+        ? updatedProduct
+        : product
+    )
+  );
+
+  // Update inventory override
+  if (updatedProduct.stock !== undefined) {
+    setInventoryOverrides((previous) => {
+      const updatedInventory = {
+        ...previous,
+        [updatedProduct.id]: Number(updatedProduct.stock) || 0,
+      };
+
+      window.localStorage.setItem(
+        "campuscart-inventory",
+        JSON.stringify(updatedInventory)
+      );
+
+      return updatedInventory;
+    });
+  }
+
+  showToast("Product updated successfully.");
+};
+
+ const handleDeleteProduct = (productId) => {
+  setDeletedProductIds((previousIds) => {
+    const updatedIds = [...new Set([...previousIds, productId])];
+
+    window.localStorage.setItem(
+      "campuscart-deleted-products",
+      JSON.stringify(updatedIds)
+    );
+
+    return updatedIds;
+  });
+
+  setExtraProducts((previousProducts) => {
+    const updatedProducts = previousProducts.filter(
+      (product) => product.id !== productId
+    );
+
+    window.localStorage.setItem(
+      "campuscart-products",
+      JSON.stringify(updatedProducts)
+    );
+
+    return updatedProducts;
+  });
+
+  setLocalProducts((previousProducts) =>
+    previousProducts.filter((product) => product.id !== productId)
+  );
+
+  setInventoryOverrides((previous) => {
+    const updated = { ...previous };
+    delete updated[productId];
+
+    window.localStorage.setItem(
+      "campuscart-inventory",
+      JSON.stringify(updated)
+    );
+
+    return updated;
+  });
+
+  showToast("Listing deleted successfully.");
+};
+
   const increaseCartQuantity = (id) => {
-  setCart((previousCart) =>
-    previousCart.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            qty: item.qty + 1,
-          }
-        : item,
-    ),
-  );
-};
+    setCart((previousCart) =>
+      previousCart.map((item) => {
+        if (item.id !== id) {
+          return item;
+        }
 
-const decreaseCartQuantity = (id) => {
-  setCart((previousCart) =>
-    previousCart
-      .map((item) =>
-        item.id === id
+        const product = allProducts.find(
+          (productItem) => productItem.id === id,
+        );
+
+       const stock = getProductStock(product);
+        if (stock <= 0) {
+          showToast(`"${item.title}" is out of stock.`);
+          return item;
+        }
+
+        if (item.qty >= stock) {
+          showToast(`Only ${stock} × "${item.title}" available.`);
+
+          return item;
+        }
+
+        return {
+          ...item,
+          qty: item.qty + 1,
+        };
+      }),
+    );
+  };
+
+  const decreaseCartQuantity = (id) => {
+    setCart((previousCart) =>
+      previousCart
+        .map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                qty: item.qty - 1,
+              }
+            : item,
+        )
+        .filter((item) => item.qty > 0),
+    );
+  };
+
+  const cancelOrder = (orderId) => {
+    setOrders((previousOrders) => {
+      const updatedOrders = previousOrders.map((order) =>
+        order.id === orderId
           ? {
-              ...item,
-              qty: item.qty - 1,
+              ...order,
+              status: "Cancelled",
+              cancelledAt: new Date().toISOString(),
             }
-          : item,
-      )
-      .filter((item) => item.qty > 0),
-  );
-};
+          : order,
+      );
 
+      window.localStorage.setItem(
+        "campuscart-orders",
+        JSON.stringify(updatedOrders),
+      );
+
+      return updatedOrders;
+    });
+  };
   const startChat = (seller, item) => {
     setActiveChat({
       seller,
@@ -209,7 +519,7 @@ const decreaseCartQuantity = (id) => {
   };
   const handlePublishListing = (product) => {
     setLocalProducts((previous) => [product, ...previous]);
-    setCurrentRoute("marketplace");
+    navigate("/marketplace");
 
     setToastMsg("Your listing was published successfully.");
   };
@@ -219,7 +529,47 @@ const decreaseCartQuantity = (id) => {
       showToast("Your cart is empty.");
       return;
     }
+    for (const item of cart) {
+      const product = allProducts.find(
+        (productItem) => productItem.id === item.id,
+      );
 
+      const stock = Math.max(0, Number(product?.stock) || 0);
+
+      if (item.qty > stock) {
+        showToast(
+          `"${item.title}" only has ${stock} available. Please update your cart.`,
+        );
+        return;
+      }
+
+      if (stock <= 0) {
+        showToast(`"${item.title}" is currently out of stock.`);
+        return;
+      }
+    }
+
+    const updatedInventory = { ...inventoryOverrides };
+
+for (const item of cart) {
+  const product = allProducts.find(
+    (productItem) => productItem.id === item.id
+  );
+
+  const currentStock = getProductStock(product);
+
+  updatedInventory[item.id] = Math.max(
+    0,
+    currentStock - item.qty
+  );
+}
+
+setInventoryOverrides(updatedInventory);
+
+window.localStorage.setItem(
+  "campuscart-inventory",
+  JSON.stringify(updatedInventory)
+);
     const total = cart.reduce(
       (sum, item) => sum + Number(item.price || 0) * item.qty,
       0,
@@ -280,7 +630,7 @@ const decreaseCartQuantity = (id) => {
         >
           {/* Minimal Geometric Logo */}
           <button
-            onClick={() => navigateTo(isLoggedIn ? "home" : "overview")}
+            onClick={() => navigateTo(isLoggedIn ? "/home" : "/")}
             className="flex items-center gap-2.5 group cursor-pointer flex-shrink-0"
           >
             <div className="w-7 h-7 rounded-full border border-white/30 flex items-center justify-center text-white text-xs group-hover:rotate-45 transition-transform duration-300">
@@ -310,21 +660,21 @@ const decreaseCartQuantity = (id) => {
           {isLoggedIn ? (
             <div className="hidden sm:flex items-center gap-1 sm:gap-1.5 bg-white/10 p-1 rounded-full text-xs font-semibold flex-shrink-0">
               <button
-                onClick={() => navigateTo("home")}
-                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${currentRoute === "home" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                onClick={() => navigateTo("/home")}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${location.pathname === "/home" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 HOME
               </button>
               <button
-                onClick={() => navigateTo("marketplace")}
-                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${currentRoute === "marketplace" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                onClick={() => navigateTo("/marketplace")}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${location.pathname === "/marketplace" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 MARKETPLACE
               </button>
               <button
-                onClick={() => navigateTo("sell")}
+                onClick={() => navigateTo("/sell")}
                 className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${
-                  currentRoute === "sell"
+                  location.pathname === "/sell"
                     ? "bg-white text-black font-bold shadow"
                     : "text-neutral-300 hover:text-white"
                 }`}
@@ -332,21 +682,21 @@ const decreaseCartQuantity = (id) => {
                 SELL ITEM
               </button>
               <button
-                onClick={() => navigateTo("services")}
-                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${currentRoute === "services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                onClick={() => navigateTo("/services")}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${location.pathname === "/services" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 SKILLS
               </button>
               <button
-                onClick={() => navigateTo("course")}
-                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${currentRoute === "course" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
+                onClick={() => navigateTo("/courses")}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${location.pathname === "/courses" ? "bg-white text-black font-bold shadow" : "text-neutral-300 hover:text-white"}`}
               >
                 COURSES
               </button>
               <button
-                onClick={() => navigateTo("orders")}
+                onClick={() => navigateTo("/orders")}
                 className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${
-                  currentRoute === "orders"
+                  location.pathname === "/orders"
                     ? "bg-white font-bold text-black shadow"
                     : "text-neutral-300 hover:text-white"
                 }`}
@@ -354,9 +704,9 @@ const decreaseCartQuantity = (id) => {
                 ORDERS
               </button>
               <button
-                onClick={() => navigateTo("wishlist")}
+                onClick={() => navigateTo("/wishlist")}
                 className={`px-3 py-1 sm:px-3.5 sm:py-1 rounded-full transition-all ${
-                  currentRoute === "wishlist"
+                  location.pathname === "/wishlist"
                     ? "bg-white text-black font-bold shadow"
                     : "text-neutral-300 hover:text-white"
                 }`}
@@ -511,7 +861,10 @@ const decreaseCartQuantity = (id) => {
         <div className="fixed inset-0 z-40 bg-neutral-950/80 backdrop-blur-md flex flex-col justify-center items-center gap-6 text-white text-2xl font-display font-bold animate-in fade-in duration-200">
           {!isLoggedIn && (
             <button
-              onClick={() => navigateTo("overview")}
+              onClick={() => {
+                navigateTo("/");
+                setNavMenuOpen(false);
+              }}
               className="hover:text-neutral-400"
             >
               OVERVIEW / ABOUT
@@ -520,41 +873,59 @@ const decreaseCartQuantity = (id) => {
           {isLoggedIn ? (
             <>
               <button
-                onClick={() => navigateTo("home")}
+                onClick={() => {
+                  navigateTo("/home");
+                  setNavMenuOpen(false);
+                }}
                 className="hover:text-neutral-400"
               >
                 HOME
               </button>
               <button
-                onClick={() => navigateTo("marketplace")}
+                onClick={() => {
+                  navigateTo("/marketplace");
+                  setNavMenuOpen(false);
+                }}
                 className="hover:text-neutral-400"
               >
                 STUDENT MARKETPLACE
               </button>
               <button
-                onClick={() => navigateTo("services")}
+                onClick={() => {
+                  navigateTo("/services");
+                  setNavMenuOpen(false);
+                }}
                 className="hover:text-neutral-400"
               >
                 PEER SKILLS & GIGS
               </button>
               <button
-                onClick={() => navigateTo("course")}
+                onClick={() => {
+                  navigateTo("/courses");
+                  setNavMenuOpen(false);
+                }}
                 className="hover:text-neutral-400"
               >
                 ACADEMIC COURSES
               </button>
               <button
-                onClick={() => navigateTo("cart")}
+                onClick={() => {
+                  navigateTo("/cart");
+                  setNavMenuOpen(false);
+                }}
                 className="hover:text-neutral-400"
               >
                 MY CART ({cart.length})
               </button>
               <button
-  onClick={() => navigateTo("orders")}
-  className="hover:text-neutral-400"
->
-  ORDER HISTORY
-</button>
+                onClick={() => {
+                  navigateTo("/orders");
+                  setNavMenuOpen(false);
+                }}
+                className="hover:text-neutral-400"
+              >
+                ORDER HISTORY
+              </button>
               <button
                 onClick={() => {
                   handleLogout();
@@ -587,100 +958,138 @@ const decreaseCartQuantity = (id) => {
 
       {/* MAIN VIEW CONTROLLER */}
       <main className="flex-1">
-        {currentRoute === "overview" && (
-          <OverviewGatewayView
-            isLoggedIn={isLoggedIn}
-            onOpenLogin={() => setIsLoginOpen(true)}
-            onExplore={() => navigateTo("marketplace")}
-            onEnterHome={() => navigateTo("home")}
-            onAddToCart={addToCart}
-            onOpenSeller={setSelectedSeller}
-          />
-        )}
-
-        {currentRoute === "home" && (
-          <HomrPageIdeaView
-            onExplore={() => navigateTo("marketplace")}
-            onAddToCart={addToCart}
-            onOpenSeller={setSelectedSeller}
-            onStartChat={startChat}
-            onOpenQr={setQrModalItem}
-            onOpenLogin={() => setIsLoginOpen(true)}
-          />
-        )}
-
-        {currentRoute === "marketplace" && (
-          <MarketplaceFullView
-            extraProducts={localProducts}
-            onAddToCart={addToCart}
-            onOpenSeller={setSelectedSeller}
-            onStartChat={startChat}
-            onOpenQr={setQrModalItem}
-            onSellItem={() => navigateTo("sell")}
-            onAddToWishlist={addToWishlist}
-            onRemoveFromWishlist={removeFromWishlist}
-            wishlistItems={wishlistItems}
-            initialProduct={productToOpen}
-          />
-        )}
-
-        {currentRoute === "sell" && (
-          <SellItemView
-            onBack={() => navigateTo("marketplace")}
-            onPublish={handlePublishListing}
-          />
-        )}
-        {currentRoute === "orders" && (
-  <OrderHistory
-    orders={orders}
-    onBack={() => navigateTo("marketplace")}
-  />
-)}
-        {currentRoute === "wishlist" && (
-          <WishlistView
-            wishlistItems={wishlistItems}
-            onBack={() => navigateTo("marketplace")}
-            onOpenProduct={(product) => {
-              setProductToOpen(product);
-              navigateTo("marketplace");
-            }}
-            onRemove={removeFromWishlist}
-            onToggleNeeded={toggleNeededByMe}
-          />
-        )}
-
-        {currentRoute === "services" && (
-          <ServicesSection
-            onBook={(title) =>
-              showToast(
-                `Requested session for "${title}"! Check your college email for details.`,
-              )
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <OverviewGatewayView
+                isLoggedIn={isLoggedIn}
+                onOpenLogin={() => setIsLoginOpen(true)}
+                onExplore={() => navigateTo("/marketplace")}
+                onEnterHome={() => navigateTo("/home")}
+                onAddToCart={addToCart}
+                onOpenSeller={setSelectedSeller}
+              />
             }
           />
-        )}
-
-        {currentRoute === "course" && (
-          <CourseSection
-            onEnroll={() =>
-              showToast("Enrolled in Academic Course! TA has been alerted.")
+          <Route
+            path="/home"
+            element={
+              <HomrPageIdeaView
+                onExplore={() => navigateTo("/marketplace")}
+                onAddToCart={addToCart}
+                onOpenSeller={setSelectedSeller}
+                onStartChat={startChat}
+                onOpenQr={setQrModalItem}
+                onOpenLogin={() => setIsLoginOpen(true)}
+              />
             }
           />
-        )}
+          <Route
+            path="/marketplace"
+            element={
+              <MarketplaceFullView
+                onAddToCart={addToCart}
+                onOpenSeller={setSelectedSeller}
+                onStartChat={startChat}
+                onOpenQr={setQrModalItem}
+                onSellItem={() => navigateTo("/sell")}
+                onAddToWishlist={addToWishlist}
+                onRemoveFromWishlist={removeFromWishlist}
+                wishlistItems={wishlistItems}
+                initialProduct={productToOpen}
+                extraProducts={extraProducts}
+                inventoryOverrides={inventoryOverrides}
+                productOverrides={productOverrides}
+              />
+            }
+          />
+          <Route
+            path="/sell"
+            element={
+              <SellItemView
+                onBack={() => navigateTo("/marketplace")}
+                onPublish={handlePublishProduct}
+              />
+            }
+          />
+          <Route
+            path="/orders"
+            element={
+              <OrderHistory
+                orders={orders}
+                onBack={() => navigateTo("/marketplace")}
+              />
+            }
+          />
+          <Route
+            path="/wishlist"
+            element={
+              <WishlistView
+                wishlistItems={wishlistItems}
+                onBack={() => navigateTo("/marketplace")}
+                onOpenProduct={(product) => {
+                  setProductToOpen(product);
+                  navigateTo("/marketplace");
+                }}
+                onRemove={removeFromWishlist}
+                onToggleNeeded={toggleNeededByMe}
+              />
+            }
+          />
+          <Route
+            path="/services"
+            element={
+              <ServicesSection
+                onBook={(title) =>
+                  showToast(
+                    `Requested session for "${title}"! Check your college email for details.`,
+                  )
+                }
+              />
+            }
+          />
+          <Route
+            path="/courses"
+            element={
+              <CourseSection
+                onEnroll={() =>
+                  showToast("Enrolled in Academic Course! TA has been alerted.")
+                }
+              />
+            }
+          />
+          <Route
+            path="/cart"
+            element={
+              <CartFullView
+                cart={cart}
+                onRemove={(id) =>
+                  setCart((previousCart) =>
+                    previousCart.filter((item) => item.id !== id),
+                  )
+                }
+                onIncrease={increaseCartQuantity}
+                onDecrease={decreaseCartQuantity}
+                onContinue={() => navigateTo("/marketplace")}
+                onCheckout={handleCheckout}
+              />
+            }
+          />
 
-        {currentRoute === "cart" && (
-         <CartFullView
-  cart={cart}
-  onRemove={(id) =>
-    setCart((previousCart) =>
-      previousCart.filter((item) => item.id !== id),
-    )
+          <Route
+  path="/seller-dashboard"
+  element={
+    <SellerDashboard
+      products={allProducts}
+      currentUser={currentUser}
+      onDeleteProduct={handleDeleteProduct}
+      onEditProduct={handleEditProduct}
+    />
   }
-  onIncrease={increaseCartQuantity}
-  onDecrease={decreaseCartQuantity}
-  onContinue={() => navigateTo("marketplace")}
-  onCheckout={handleCheckout}
 />
-        )}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
 
       {/* =========================================================================
