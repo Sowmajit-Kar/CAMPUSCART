@@ -5,17 +5,14 @@ export const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 async function request(path, options = {}) {
-  const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-  method: "POST",
-  credentials: "include",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    email,
-    password,
-  }),
-});
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
 
   const text = await res.text();
 
