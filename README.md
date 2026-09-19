@@ -19,13 +19,20 @@ CAMPUSCART/
 ├── package-lock.json                   # Root package lockfile
 ├── README.md                           # Documentation & project guide
 ├── index.html                          # Root entry point with instant redirect to frontend
-├── backend/                            # FastAPI backend service
-│   ├── requirements.txt                # Python dependencies (FastAPI, Uvicorn, etc.)
+├── backend/                            # FastAPI backend service with MongoDB Atlas
+│   ├── requirements.txt                # Python dependencies (FastAPI, Motor, PyMongo, etc.)
+│   ├── seed.py                         # Standalone inventory seeding CLI script
 │   └── app/                            # Application source code
-│       ├── main.py                     # API entry point & route definitions
-│       └── core/                       # Core backend configurations
-│           ├── config.py               # Environment & app settings
-│           └── database.py             # Database connector & session setup
+│       ├── main.py                     # API entry point, CORS & lifespan auto-seeding
+│       ├── core/                       # Core configurations
+│       │   ├── config.py               # Environment & app settings (Pydantic Settings)
+│       │   └── mongodb.py              # Motor async MongoDB connector & ping health check
+│       ├── data/                       # Initial data assets
+│       │   └── initial_data.py         # 6 initial collegiate products (Medical & Engineering)
+│       ├── models/                     # Pydantic schemas
+│       │   └── product.py              # ProductCreate, ProductUpdate, ProductResponse models
+│       └── routes/                     # REST API route handlers
+│           └── products.py             # Full CRUD endpoints (/api/v1/products)
 └── frontend/                           # Modern Vite + React 18 Application
     ├── index.html                      # Vite HTML module entry point
     ├── package.json                    # Frontend scripts & dependencies (Leaflet, Lucide, Tailwind)
@@ -202,45 +209,121 @@ CampusCart dynamically bifurcates order routing based on collegiate proximity an
 
 ## 🚀 How to Run Locally
 
-### 1. Frontend (Vite + React)
+### Prerequisites
+- **Node.js**: `v18.0.0` or later ([Download Node.js](https://nodejs.org/))
+- **Python**: `3.10` or later (for local backend) ([Download Python](https://www.python.org/))
+- **MongoDB Atlas account or local MongoDB** (if running backend locally)
+
+---
+
+### Option A: Quickstart (Frontend with Live Cloud Backend) — *Recommended*
+
+The frontend is already pre-configured to connect to the live production FastAPI + MongoDB Atlas backend hosted on Render (`https://campuscart-6m90.onrender.com`). You can launch the full application locally in seconds without setting up Python or MongoDB:
 
 ```bash
-# Install dependencies
+# 1. Clone repository
+git clone https://github.com/Sowmajit-Kar/CAMPUSCART.git
+cd CAMPUSCART
+
+# 2. Install frontend dependencies
 npm run install:frontend
 # or: cd frontend && npm install
 
-# Start Vite development server (HMR enabled)
+# 3. Start Vite development server
 npm run dev
-# or: make dev
-# Launches at http://localhost:3000 (or http://localhost:5173)
-```
+# or: cd frontend && npm run dev
 
-To create an optimized production build:
-```bash
-npm run build
-# or: cd frontend && npm run build
+# 4. Open in your browser:
+# http://localhost:3000 (or http://localhost:5173)
 ```
 
 ---
 
-### 2. Backend (FastAPI)
+### Option B: Full-Stack Local Development (Frontend + Local FastAPI Backend)
+
+To run both the Python FastAPI backend and Vite React frontend locally:
+
+#### Step 1: Start the Backend (FastAPI + MongoDB)
 
 ```bash
-# Navigate to backend directory
+# 1. Navigate to backend
 cd backend
 
-# Create & activate a virtual environment (optional but recommended)
+# 2. Create & activate a virtual environment
+# Windows (PowerShell):
 python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+.\venv\Scripts\activate
 
-# Install Python dependencies
+# macOS / Linux:
+# python3 -m venv venv
+# source venv/bin/activate
+
+# 3. Install Python dependencies
 pip install -r requirements.txt
 
-# Start the FastAPI server with auto-reload
-uvicorn app.main:app --reload
-# API runs on http://127.0.0.1:8000
-# Interactive Swagger docs at http://127.0.0.1:8000/docs
+# 4. Create a .env file inside backend/ (optional, defaults to safe fallbacks)
+# MONGO_URI=mongodb+srv://<username>:<password>@cluster0.abcde.mongodb.net/campuscart_db?retryWrites=true&w=majority
+# MONGO_DB_NAME=campuscart_db
+
+# 5. Start the FastAPI server with auto-reload
+uvicorn app.main:app --reload --port 8000
+
+# Backend runs on: http://127.0.0.1:8000
+# Interactive Swagger Documentation: http://127.0.0.1:8000/docs
+# MongoDB Health Check: http://127.0.0.1:8000/api/v1/health/mongodb
 ```
+
+> [!NOTE]
+> On startup, the FastAPI server automatically connects to MongoDB and seeds 6 collegiate items (Medical Books, Bone Set, Mini Drafter, etc.) if the collection is empty. You can also re-seed manually at any time by running:
+> ```bash
+> python seed.py
+> ```
+
+#### Step 2: Start the Frontend (Pointed to Local Backend)
+
+Open a **new terminal tab**:
+
+```bash
+# 1. Navigate to frontend
+cd frontend
+
+# 2. (Optional) Point frontend to your local backend
+# In frontend/.env or frontend/.env.local:
+# VITE_API_URL=http://localhost:8000
+
+# 3. Install dependencies & start dev server
+npm install
+npm run dev
+
+# Frontend runs on: http://localhost:3000
+```
+
+---
+
+### 🌐 Live Production API & Evaluator Links
+
+For teacher evaluations and live viva presentations without running anything locally:
+
+| Resource | URL | Status |
+| :--- | :--- | :--- |
+| **Interactive Swagger API Docs** | [campuscart-6m90.onrender.com/docs](https://campuscart-6m90.onrender.com/docs) | 🟢 Live |
+| **API Health Status** | [campuscart-6m90.onrender.com/api/v1/health](https://campuscart-6m90.onrender.com/api/v1/health) | 🟢 Healthy |
+| **MongoDB Atlas Health** | [campuscart-6m90.onrender.com/api/v1/health/mongodb](https://campuscart-6m90.onrender.com/api/v1/health/mongodb) | 🟢 Connected |
+| **Products REST Endpoint** | [campuscart-6m90.onrender.com/api/v1/products](https://campuscart-6m90.onrender.com/api/v1/products) | 🟢 8+ Products |
+
+---
+
+### 📡 REST API Endpoints Overview
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/v1/products` | List products (supports `?stream=medical`, `?category=...`, `?search=...`) |
+| `GET` | `/api/v1/products/{id}` | Get single product details by MongoDB ID |
+| `POST` | `/api/v1/products` | Create a new product listing (used by `/sell`) |
+| `PUT` | `/api/v1/products/{id}` | Update product fields (used by `/seller-dashboard`) |
+| `DELETE` | `/api/v1/products/{id}` | Delete product (used by `/seller-dashboard` & auto-triggered on QR buy) |
+| `POST` | `/api/v1/products/seed` | Seed initial campus items into database |
+| `GET` | `/api/v1/health/mongodb` | Instructor viva verification for database connectivity |
 
 ---
 
