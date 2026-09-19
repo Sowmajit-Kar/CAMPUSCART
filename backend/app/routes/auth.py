@@ -57,8 +57,7 @@ async def login(payload: LoginRequest, response: Response, request: Request):
     secure=is_production,
     samesite="none" if is_production else "lax",
     path="/",
-    )
-    return {"user": user_data}
+)
 
 
 @router.get("/me", response_model=AuthResponse)

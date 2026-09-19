@@ -70,7 +70,7 @@ app.add_middleware(
         "http://127.0.0.1:3000",
 
         # Vercel production frontend
-        "https://campuscart-iota-one.vercel.app/",
+        "https://YOUR-PROJECT.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
