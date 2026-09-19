@@ -47,14 +47,16 @@ async def login(payload: LoginRequest, response: Response, request: Request):
 
     user_data = serialize_user(user)
     token = create_session_token(user_data["id"], user_data["email"], user_data["name"])
+    is_production = request.url.scheme == "https"
+
     response.set_cookie(
-        key="campuscart_session",
-        value=token,
-        max_age=60 * 60 * 24 * 7,
-        httponly=True,
-        secure=request.url.scheme == "https",
-        samesite="none" if request.url.scheme == "https" else "lax",
-        path="/",
+    key="campuscart_session",
+    value=token,
+    max_age=60 * 60 * 24 * 7,
+    httponly=True,
+    secure=is_production,
+    samesite="none" if is_production else "lax",
+    path="/",
     )
     return {"user": user_data}
 
@@ -70,5 +72,11 @@ async def me(current=Depends(get_current_user)):
 
 @router.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie("campuscart_session", path="/")
+    response.delete_cookie(
+    "campuscart_session",
+    path="/",
+    secure=True,
+    httponly=True,
+    samesite="none",
+)
     return {"message": "Logged out successfully"}
