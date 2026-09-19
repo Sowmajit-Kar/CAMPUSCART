@@ -526,3 +526,10 @@ export async function cancelOrderOnBackend(
     };
   }
 }
+
+/**
+ * Authenticate student login with backend & MongoDB Atlas (alias for loginUser)
+ */
+export async function loginUserOnBackend(email, password = "student123") {
+  return loginUser(email, password);
+}

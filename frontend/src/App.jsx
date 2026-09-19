@@ -26,6 +26,7 @@ import {
   updateProductOnBackend,
   deleteProductOnBackend,
   checkBackendHealth,
+  loginUserOnBackend,
   getCurrentUser,
   loginUser,
   logoutUser,
@@ -118,6 +119,12 @@ function App() {
     return () => { active = false; clearInterval(syncInterval); };
   }, [isLoggedIn, location.pathname]);
 
+  // Open login dialog automatically when visiting /login
+  useEffect(() => {
+    if (location.pathname === "/login") {
+      setIsLoginOpen(true);
+    }
+  }, [location.pathname]);
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
@@ -166,9 +173,12 @@ function App() {
       ...user,
       id: user.id || user._id || user.userId || user.sub,
     });
-
     setIsLoggedIn(true);
     setIsLoginOpen(false);
+
+    if (window.confetti) {
+      window.confetti({ particleCount: 80, spread: 65, origin: { y: 0.5 } });
+    }
 
     navigate("/home");
 
@@ -656,6 +666,19 @@ function App() {
         <Routes>
           <Route
             path="/"
+            element={
+              <OverviewGatewayView
+                isLoggedIn={isLoggedIn}
+                onOpenLogin={() => setIsLoginOpen(true)}
+                onExplore={() => navigateTo("/marketplace")}
+                onEnterHome={() => navigateTo("/home")}
+                onAddToCart={addToCart}
+                onOpenSeller={setSelectedSeller}
+              />
+            }
+          />
+          <Route
+            path="/login"
             element={
               <OverviewGatewayView
                 isLoggedIn={isLoggedIn}

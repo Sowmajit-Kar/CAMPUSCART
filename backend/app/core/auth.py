@@ -5,7 +5,7 @@ import json
 import time
 from typing import Optional
 
-from fastapi import Cookie, HTTPException, status
+from fastapi import Cookie, Header, HTTPException, status
 
 from app.core.config import settings
 
@@ -31,6 +31,8 @@ def create_session_token(user_id: str, email: str, name: str | None = None) -> s
 
 def decode_session_token(token: str) -> Optional[dict]:
     try:
+        if token.startswith("campuscart_"):
+            token = token.replace("campuscart_", "", 1)
         raw, signature = token.split(".", 1)
         expected = hmac.new(settings.JWT_SECRET_KEY.encode(), raw.encode(), hashlib.sha256).hexdigest()
         if not hmac.compare_digest(signature, expected):
@@ -44,11 +46,21 @@ def decode_session_token(token: str) -> Optional[dict]:
         return None
 
 
-async def get_current_user(session: Optional[str] = Cookie(default=None, alias="campuscart_session")):
-    if not session:
+async def get_current_user(
+    session: Optional[str] = Cookie(default=None, alias="campuscart_session"),
+    authorization: Optional[str] = Header(default=None),
+):
+    token = session
+    if not token and authorization:
+        if authorization.startswith("Bearer "):
+            token = authorization[7:].strip()
+        else:
+            token = authorization.strip()
+
+    if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
 
-    payload = decode_session_token(session)
+    payload = decode_session_token(token)
     if not payload:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired session")
 
