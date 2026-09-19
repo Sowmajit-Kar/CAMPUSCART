@@ -27,6 +27,7 @@ import {
   updateProductOnBackend,
   deleteProductOnBackend,
   checkBackendHealth,
+  loginUserOnBackend,
 } from "./services/api";
 
 function App() {
@@ -112,6 +113,13 @@ function App() {
       clearInterval(syncInterval);
     };
   }, [isLoggedIn, location.pathname]);
+
+  // Open login dialog automatically when visiting /login
+  useEffect(() => {
+    if (location.pathname === "/login") {
+      setIsLoginOpen(true);
+    }
+  }, [location.pathname]);
 
   const [deletedProductIds, setDeletedProductIds] = useState(() => {
     try {
@@ -249,13 +257,13 @@ function App() {
       ),
     );
   };
-  const handleLogin = (customEmail) => {
+  const handleLogin = async (customEmail) => {
     const email = customEmail || loginEmail || "2024cs1089@campus.edu";
     const roll = email.split("@")[0].toUpperCase();
-    const userObj = {
+    let userObj = {
       email: email,
       roll: roll,
-      name: roll === "2024CS1089" ? "Aarav Patel" : "Verified Student",
+      name: roll === "2024CS1089" ? "Aarav Patel" : `Student ${roll}`,
       dept: "Computer Science & Engineering",
       hostel: "Hostel 4, Room 218",
     };
@@ -273,6 +281,18 @@ function App() {
     showToast(
       `🎉 Authenticated as ${roll}! Welcome to the CampusCart Main Portal.`,
     );
+
+    // Persist and authenticate student session in MongoDB Atlas
+    try {
+      const authRes = await loginUserOnBackend(email);
+      if (authRes?.user) {
+        userObj = { ...userObj, ...authRes.user };
+        setCurrentUser(userObj);
+        window.localStorage.setItem("campuscart-user", JSON.stringify(userObj));
+      }
+    } catch (err) {
+      console.warn("Backend login persistence:", err);
+    }
   };
 
   const handleLogout = () => {
@@ -1087,6 +1107,19 @@ window.localStorage.setItem(
         <Routes>
           <Route
             path="/"
+            element={
+              <OverviewGatewayView
+                isLoggedIn={isLoggedIn}
+                onOpenLogin={() => setIsLoginOpen(true)}
+                onExplore={() => navigateTo("/marketplace")}
+                onEnterHome={() => navigateTo("/home")}
+                onAddToCart={addToCart}
+                onOpenSeller={setSelectedSeller}
+              />
+            }
+          />
+          <Route
+            path="/login"
             element={
               <OverviewGatewayView
                 isLoggedIn={isLoggedIn}
