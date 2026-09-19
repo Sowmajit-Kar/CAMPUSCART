@@ -5,6 +5,7 @@ const INITIAL_FORM = {
   category: 'Notes & Material',
   mode: 'BUY',
   price: '',
+  stock: 1,
   condition: 'Like New',
   description: '',
   pickupLocation: '',
@@ -16,7 +17,7 @@ const INITIAL_FORM = {
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=900&auto=format&fit=crop&q=80';
 
-function SellItemView({ onBack, onPublish }) {
+function SellItemView({ onBack, onPublish, currentUser }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [imagePreview, setImagePreview] = useState('');
   const [error, setError] = useState('');
@@ -87,6 +88,10 @@ function SellItemView({ onBack, onPublish }) {
       return 'Price must be greater than zero.';
     }
 
+    if (Number(form.stock) < 1) {
+      return 'Stock must be at least 1.';
+    }
+
     if (form.mode === 'RENT' && !form.rentalRate.trim()) {
       return 'Please provide a rental rate.';
     }
@@ -108,36 +113,61 @@ function SellItemView({ onBack, onPublish }) {
       return;
     }
 
+   
+
+if (!currentUser) {
+  setError("You must be logged in to publish a listing.");
+  return;
+}
+
     setError('');
     setIsPublishing(true);
 
     const newProduct = {
-      id: `local-${Date.now()}`,
       title: form.title.trim(),
       category: form.category,
       mode: form.mode,
       price: Number(form.price),
+      stock: Math.max(1, Number(form.stock) || 1),
       originalPrice: null,
       condition: form.condition,
       description: form.description.trim(),
       pickupLocation: form.pickupLocation.trim(),
       image: form.image || FALLBACK_IMAGE,
-      rentalRate: form.mode === 'RENT' ? form.rentalRate.trim() : '',
+
+      rentalRate:
+        form.mode === 'RENT'
+          ? form.rentalRate.trim()
+          : '',
+
       exchangeWish:
-        form.mode === 'EXCHANGE' ? form.exchangeWish.trim() : '',
+        form.mode === 'EXCHANGE'
+          ? form.exchangeWish.trim()
+          : '',
+
+      
+
       seller: {
-        name: 'You',
-        email: 'student@campus.edu',
+        name:
+          currentUser.name ||
+          currentUser.fullName ||
+          currentUser.email ||
+          'Student Seller',
+
+        email: currentUser.email || '',
+
         avatar:
+          currentUser.avatar ||
           'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80',
-        trustScore: 100,
-        verified: false,
-        department: 'Student Seller',
+
+        trustScore: currentUser.trustScore ?? 100,
+        verified: currentUser.verified ?? false,
+        department: currentUser.department || 'Student Seller',
         reviews: 0,
         rating: 0,
       },
+
       createdAt: new Date().toISOString(),
-      isLocalListing: true,
     };
 
     try {
@@ -152,7 +182,9 @@ function SellItemView({ onBack, onPublish }) {
         fileInput.value = '';
       }
     } catch {
-      setError('Unable to publish the listing. Please try again.');
+      setError(
+        'Unable to publish the listing. Please try again.'
+      );
     } finally {
       setIsPublishing(false);
     }
@@ -197,6 +229,7 @@ function SellItemView({ onBack, onPublish }) {
         )}
 
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          {/* Item Title */}
           <div className="md:col-span-2">
             <label
               htmlFor="item-title"
@@ -217,6 +250,7 @@ function SellItemView({ onBack, onPublish }) {
             />
           </div>
 
+          {/* Category */}
           <div>
             <label
               htmlFor="item-category"
@@ -245,6 +279,7 @@ function SellItemView({ onBack, onPublish }) {
             </select>
           </div>
 
+          {/* Listing Type */}
           <div>
             <label
               htmlFor="listing-type"
@@ -267,6 +302,7 @@ function SellItemView({ onBack, onPublish }) {
             </select>
           </div>
 
+          {/* Price */}
           <div>
             <label
               htmlFor="item-price"
@@ -290,6 +326,31 @@ function SellItemView({ onBack, onPublish }) {
             />
           </div>
 
+          {/* Stock */}
+          <div>
+            <label
+              htmlFor="item-stock"
+              className="mb-2 block text-sm font-bold text-neutral-800"
+            >
+              Stock / Quantity *
+            </label>
+
+            <input
+              id="item-stock"
+              type="number"
+              min="1"
+              step="1"
+              value={form.stock}
+              onChange={(event) =>
+                updateField('stock', event.target.value)
+              }
+              placeholder="Enter available quantity"
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none transition focus:border-neutral-950 focus:ring-2 focus:ring-neutral-200"
+              required
+            />
+          </div>
+
+          {/* Condition */}
           <div>
             <label
               htmlFor="item-condition"
@@ -314,6 +375,7 @@ function SellItemView({ onBack, onPublish }) {
             </select>
           </div>
 
+          {/* Rental Rate */}
           {form.mode === 'RENT' && (
             <div className="md:col-span-2">
               <label
@@ -336,6 +398,7 @@ function SellItemView({ onBack, onPublish }) {
             </div>
           )}
 
+          {/* Exchange Wish */}
           {form.mode === 'EXCHANGE' && (
             <div className="md:col-span-2">
               <label
@@ -358,6 +421,7 @@ function SellItemView({ onBack, onPublish }) {
             </div>
           )}
 
+          {/* Description */}
           <div className="md:col-span-2">
             <label
               htmlFor="item-description"
@@ -379,6 +443,7 @@ function SellItemView({ onBack, onPublish }) {
             />
           </div>
 
+          {/* Pickup Location */}
           <div className="md:col-span-2">
             <label
               htmlFor="pickup-location"
@@ -399,6 +464,7 @@ function SellItemView({ onBack, onPublish }) {
             />
           </div>
 
+          {/* Image Upload */}
           <div className="md:col-span-2">
             <label
               htmlFor="item-image"
@@ -420,6 +486,7 @@ function SellItemView({ onBack, onPublish }) {
             </p>
           </div>
 
+          {/* Image Preview */}
           <div className="md:col-span-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-neutral-800">

@@ -7,7 +7,6 @@ import {
   Navigate,
 } from "react-router-dom";
 import confetti from "canvas-confetti";
-import { CAMPUS_DATA } from "./data/mockData";
 import VideoShowcase from "./components/VideoShowcase";
 import CircularWheelShowcase from "./components/CircularWheelShowcase";
 import OverviewGatewayView from "./components/OverviewGatewayView";
@@ -28,47 +27,27 @@ import {
   deleteProductOnBackend,
   checkBackendHealth,
   loginUserOnBackend,
+  getCurrentUser,
+  loginUser,
+  logoutUser,
+  fetchCart,
+  saveCart,
+  fetchWishlist,
+  saveWishlist,
+  fetchOrders,
+  checkoutOnBackend,
+  cancelOrderOnBackend,
 } from "./services/api";
 
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    try {
-      return window.localStorage.getItem("campuscart-is-logged-in") === "true";
-    } catch {
-      return false;
-    }
-  });
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const storedUser = window.localStorage.getItem("campuscart-user");
-      return storedUser ? JSON.parse(storedUser) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [wishlistItems, setWishlistItems] = useState([]);
   const [cart, setCart] = useState([]);
-  const [extraProducts, setExtraProducts] = useState(() => {
-    try {
-      return JSON.parse(
-        window.localStorage.getItem("campuscart-products") || "[]",
-      );
-    } catch {
-      return [];
-    }
-  });
-
-  const [orders, setOrders] = useState(() => {
-    try {
-      return JSON.parse(
-        window.localStorage.getItem("campuscart-orders") || "[]",
-      );
-    } catch {
-      return [];
-    }
-  });
+  const [orders, setOrders] = useState([]);
+  const [authLoading, setAuthLoading] = useState(true);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [selectedCampusHub, setSelectedCampusHub] = useState(null);
@@ -79,39 +58,65 @@ function App() {
   const [qrModalItem, setQrModalItem] = useState(null);
   const [toastMsg, setToastMsg] = useState(null);
   const [navMenuOpen, setNavMenuOpen] = useState(false);
-  const [localProducts, setLocalProducts] = useState([]);
   const [productToOpen, setProductToOpen] = useState(null);
   const [mongoProducts, setMongoProducts] = useState([]);
   const [dbStatus, setDbStatus] = useState("connecting"); // 'connected', 'offline', 'connecting'
 
-  // Live multi-user synchronization: fetches on mount, login/logout, route change, and 5s polling interval
+  // MongoDB is the single source of truth for products.
+  const allProducts = mongoProducts;
+
+  const getProductStock = (product) =>
+    Math.max(0, Number(product?.stock) || 0);
+
   useEffect(() => {
-    let isMounted = true;
-    async function loadMongoDBData() {
-      try {
-        const health = await checkBackendHealth();
-        if (isMounted) {
-          setDbStatus(health.connected ? "connected" : "offline");
-        }
+  const restoreSession = async () => {
+    try {
+      const result = await getCurrentUser();
 
-        const res = await fetchProductsFromBackend();
-        if (isMounted && res.success && Array.isArray(res.products) && res.products.length > 0) {
-          setMongoProducts(res.products);
-          setDbStatus("connected");
-        }
-      } catch (err) {
-        console.warn("MongoDB live sync error:", err);
-        if (isMounted) setDbStatus("offline");
+      if (result?.success && result?.user) {
+        const user = result.user;
+
+        setCurrentUser({
+          ...user,
+          id: user.id || user._id || user.userId || user.sub,
+        });
+
+        setIsLoggedIn(true);
+      } else {
+        setCurrentUser(null);
+        setIsLoggedIn(false);
       }
+    } catch (error) {
+      console.error("Session restore failed:", error);
+      setCurrentUser(null);
+      setIsLoggedIn(false);
     }
+  };
 
-    loadMongoDBData();
-    const syncInterval = setInterval(loadMongoDBData, 5000); // Poll every 5s for live cross-user updates
+  restoreSession();
+}, []);
 
-    return () => {
-      isMounted = false;
-      clearInterval(syncInterval);
-    };
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    let active = true;
+    async function loadRemoteState() {
+      const [health, products, remoteCart, remoteWishlist, remoteOrders] = await Promise.all([
+        checkBackendHealth(),
+        fetchProductsFromBackend(),
+        fetchCart(),
+        fetchWishlist(),
+        fetchOrders(),
+      ]);
+      if (!active) return;
+      setDbStatus(health.connected ? "connected" : "offline");
+      if (products.success) setMongoProducts(products.products);
+      if (remoteCart.success) setCart(remoteCart.items || []);
+      if (remoteWishlist.success) setWishlistItems(remoteWishlist.items || []);
+      if (remoteOrders.success) setOrders(remoteOrders.orders || []);
+    }
+    loadRemoteState();
+    const syncInterval = setInterval(loadRemoteState, 5000);
+    return () => { active = false; clearInterval(syncInterval); };
   }, [isLoggedIn, location.pathname]);
 
   // Open login dialog automatically when visiting /login
@@ -120,190 +125,84 @@ function App() {
       setIsLoginOpen(true);
     }
   }, [location.pathname]);
-
-  const [deletedProductIds, setDeletedProductIds] = useState(() => {
-    try {
-      return JSON.parse(
-        window.localStorage.getItem("campuscart-deleted-products") || "[]"
-      );
-    } catch {
-      return [];
-    }
-  });
-
-  const [inventoryOverrides, setInventoryOverrides] = useState(() => {
-    try {
-      return JSON.parse(
-        window.localStorage.getItem("campuscart-inventory") || "{}"
-      );
-    } catch {
-      return {};
-    }
-  });
-
-  const [productOverrides, setProductOverrides] = useState(() => {
-    try {
-      return JSON.parse(
-        window.localStorage.getItem("campuscart-product-overrides") || "{}"
-      );
-    } catch {
-      return {};
-    }
-  });
-
-  const allProducts = useMemo(() => {
-    // When live MongoDB Atlas data is connected, it is the authoritative Single Source of Truth!
-    // Every user who logs in or visits sees the exact live items and updates from other users.
-    if (mongoProducts && mongoProducts.length > 0) {
-      return mongoProducts
-        .filter((product) => !deletedProductIds.includes(product.id))
-        .map((product) => ({
-          ...product,
-          ...(productOverrides[product.id] || {}),
-        }));
-    }
-
-    // Offline / Safe Fallback mode when backend is sleeping or unreachable
-    const baseProducts = CAMPUS_DATA?.products || [];
-    const combined = [
-      ...baseProducts,
-      ...(extraProducts || []),
-      ...(localProducts || []),
-    ];
-
-    const uniqueMap = new Map();
-    for (const item of combined) {
-      if (item && item.id && !uniqueMap.has(item.id)) {
-        uniqueMap.set(item.id, item);
-      }
-    }
-
-    return Array.from(uniqueMap.values())
-      .filter((product) => !deletedProductIds.includes(product.id))
-      .map((product) => ({
-        ...product,
-        ...(productOverrides[product.id] || {}),
-      }));
-  }, [
-    mongoProducts,
-    extraProducts,
-    localProducts,
-    deletedProductIds,
-    productOverrides,
-  ]);
-
-  const getProductStock = (product) => {
-  const originalStock = Math.max(
-    0,
-    Number(product?.stock) || 0
-  );
-
-  if (
-    Object.prototype.hasOwnProperty.call(
-      inventoryOverrides,
-      product.id
-    )
-  ) {
-    return Math.max(
-      0,
-      Number(inventoryOverrides[product.id]) || 0
-    );
-  }
-
-  return originalStock;
-};
-  useEffect(() => {
-    window.localStorage.setItem("campuscart-cart", JSON.stringify(cart));
-  }, [cart]);
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
   };
-  const addToWishlist = (product) => {
-    setWishlistItems((previous) => {
-      if (previous.some((item) => item.id === product.id)) {
-        return previous;
-      }
-
-      return [
-        ...previous,
-        {
-          ...product,
-          neededByMe: false,
-        },
-      ];
-    });
-
-    setToastMsg("Item added to your wishlist.");
+  const addToWishlist = async (product) => {
+    if (wishlistItems.some((item) => item.id === product.id)) return;
+    const next = [...wishlistItems, { ...product, neededByMe: false }];
+    setWishlistItems(next);
+    const result = await saveWishlist(next);
+    if (!result.success) { setWishlistItems(wishlistItems); showToast(`Could not save wishlist: ${result.error}`); return; }
+    showToast("Item added to your wishlist.");
   };
 
-  const removeFromWishlist = (productId) => {
-    setWishlistItems((previous) =>
-      previous.filter((product) => product.id !== productId),
-    );
-
-    setToastMsg("Item removed from your wishlist.");
+  const removeFromWishlist = async (productId) => {
+    const next = wishlistItems.filter((product) => product.id !== productId);
+    setWishlistItems(next);
+    const result = await saveWishlist(next);
+    if (!result.success) { setWishlistItems(wishlistItems); showToast(`Could not update wishlist: ${result.error}`); return; }
+    showToast("Item removed from your wishlist.");
   };
 
-  const toggleNeededByMe = (productId) => {
-    setWishlistItems((previous) =>
-      previous.map((product) =>
-        product.id === productId
-          ? {
-              ...product,
-              neededByMe: !product.neededByMe,
-            }
-          : product,
-      ),
-    );
+  const toggleNeededByMe = async (productId) => {
+    const next = wishlistItems.map((product) => product.id === productId ? { ...product, neededByMe: !product.neededByMe } : product);
+    setWishlistItems(next);
+    const result = await saveWishlist(next);
+    if (!result.success) setWishlistItems(wishlistItems);
   };
+
   const handleLogin = async (customEmail) => {
-    const email = customEmail || loginEmail || "2024cs1089@campus.edu";
-    const roll = email.split("@")[0].toUpperCase();
-    let userObj = {
-      email: email,
-      roll: roll,
-      name: roll === "2024CS1089" ? "Aarav Patel" : `Student ${roll}`,
-      dept: "Computer Science & Engineering",
-      hostel: "Hostel 4, Room 218",
-    };
+  const email = customEmail || loginEmail;
+
+  try {
+    const result = await loginUser(
+      email,
+      loginPassword || "campuscart-demo-password"
+    );
+
+    if (!result?.success || !result?.user) {
+      showToast(result?.error || "Login failed.");
+      return;
+    }
+
+    const user = result.user;
+
+    setCurrentUser({
+      ...user,
+      id: user.id || user._id || user.userId || user.sub,
+    });
     setIsLoggedIn(true);
-    setCurrentUser(userObj);
-    try {
-      window.localStorage.setItem("campuscart-is-logged-in", "true");
-      window.localStorage.setItem("campuscart-user", JSON.stringify(userObj));
-    } catch {}
-    navigate("/home");
     setIsLoginOpen(false);
+
     if (window.confetti) {
       window.confetti({ particleCount: 80, spread: 65, origin: { y: 0.5 } });
     }
+
+    navigate("/home");
+
     showToast(
-      `🎉 Authenticated as ${roll}! Welcome to the CampusCart Main Portal.`,
+      `🎉 Authenticated as ${
+        user.roll || user.email
+      }! Welcome to CampusCart.`
     );
+  } catch (error) {
+    console.error("Login error:", error);
+    showToast(error.message || "Login failed.");
+  }
+};
 
-    // Persist and authenticate student session in MongoDB Atlas
-    try {
-      const authRes = await loginUserOnBackend(email);
-      if (authRes?.user) {
-        userObj = { ...userObj, ...authRes.user };
-        setCurrentUser(userObj);
-        window.localStorage.setItem("campuscart-user", JSON.stringify(userObj));
-      }
-    } catch (err) {
-      console.warn("Backend login persistence:", err);
-    }
-  };
-
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logoutUser();
     setIsLoggedIn(false);
     setCurrentUser(null);
-    try {
-      window.localStorage.removeItem("campuscart-is-logged-in");
-      window.localStorage.removeItem("campuscart-user");
-    } catch {}
+    setCart([]);
+    setWishlistItems([]);
+    setOrders([]);
+    setMongoProducts([]);
     navigate("/");
-    showToast("👋 Signed out. Returned to CampusCart Overview.");
+    showToast("👋 Signed out.");
   };
 
   const navigateTo = (target) => {
@@ -325,296 +224,93 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const addToCart = (product, requestedQuantity = 1) => {
+  const addToCart = async (product, requestedQuantity = 1) => {
     const stock = getProductStock(product);
     const quantityToAdd = Math.max(1, Number(requestedQuantity) || 1);
+    const existingItem = cart.find((item) => item.id === product.id);
+    const currentQuantity = existingItem?.qty || 0;
+    const availableToAdd = stock - currentQuantity;
+    if (stock <= 0 || availableToAdd <= 0) { showToast(`"${product.title}" is out of stock.`); return; }
+    const finalQuantityToAdd = Math.min(quantityToAdd, availableToAdd);
+    const sellerName = typeof product.seller === "object" ? product.seller?.name || "Campus Seller" : product.seller || "Campus Seller";
+    const next = existingItem
+      ? cart.map((item) => item.id === product.id ? { ...item, qty: item.qty + finalQuantityToAdd } : item)
+      : [...cart, { id: product.id, title: product.title, price: Number(product.price) || 0, qty: finalQuantityToAdd, image: product.image, seller: sellerName, pickupLocation: product.pickupLocation || "Campus Safe Desk" }];
+    setCart(next);
+    const result = await saveCart(next);
+    if (!result.success) { setCart(cart); showToast(`Could not save cart: ${result.error}`); return; }
+    showToast(`Added ${finalQuantityToAdd} × "${product.title}" to cart!`);
+  };
 
-    setCart((previousCart) => {
-      const existingItem = previousCart.find((item) => item.id === product.id);
-
-      const currentQuantity = existingItem?.qty || 0;
-      const availableToAdd = stock - currentQuantity;
-
-      if (stock <= 0) {
-        showToast(`"${product.title}" is currently out of stock.`);
-        return previousCart;
-      }
-
-      if (availableToAdd <= 0) {
-        showToast(`"${product.title}" is already at the stock limit.`);
-        return previousCart;
-      }
-
-      const finalQuantityToAdd = Math.min(quantityToAdd, availableToAdd);
-
-      if (existingItem) {
-        return previousCart.map((item) =>
-          item.id === product.id
-            ? {
-                ...item,
-                qty: item.qty + finalQuantityToAdd,
-              }
-            : item,
-        );
-      }
-
-      const sellerName =
-        typeof product.seller === "object"
-          ? product.seller?.name || "Campus Seller"
-          : product.seller || product.sellerName || "Campus Seller";
-
-      return [
-        ...previousCart,
-        {
-          id: product.id,
-          title: product.title,
-          price: Number(product.price) || 0,
-          qty: finalQuantityToAdd,
-          image: product.image,
-          seller: sellerName,
-          pickupLocation:
-            typeof product.pickupLocation === "object"
-              ? product.pickupLocation?.name || "Campus Safe Desk"
-              : product.pickupLocation || "Campus Safe Desk",
-        },
-      ];
-    });
-
-    if (quantityToAdd > stock) {
-      showToast(
-        `Only ${stock} × "${product.title}" available. Added ${Math.min(
-          quantityToAdd,
-          stock,
-        )}.`,
-      );
-    } else {
-      showToast(`Added ${quantityToAdd} × "${product.title}" to cart!`);
-    }
+  const refreshProducts = async () => {
+    const result = await fetchProductsFromBackend();
+    if (result.success) { setMongoProducts(result.products); setDbStatus("connected"); }
+    else setDbStatus("offline");
+    return result;
   };
 
   const handlePublishProduct = async (newProduct) => {
-    // 1. Instant optimistic UI update
-    setExtraProducts((previousProducts) => {
-      const updatedProducts = [newProduct, ...previousProducts];
-      window.localStorage.setItem(
-        "campuscart-products",
-        JSON.stringify(updatedProducts),
-      );
-      return updatedProducts;
-    });
-
+    showToast("Publishing listing...");
+    const result = await createProductOnBackend(newProduct);
+    if (!result.success) { showToast(`❌ ${result.error}`); return; }
+    await refreshProducts();
     navigate("/marketplace");
-    showToast("Publishing listing... Syncing to MongoDB Atlas");
-
-    // 2. Call live MongoDB backend API
-    try {
-      const result = await createProductOnBackend(newProduct);
-      if (result.success) {
-        showToast("🟢 Successfully saved in MongoDB Atlas!");
-        setDbStatus("connected");
-        if (result.data?.id) {
-          const backendId = result.data.id;
-          setExtraProducts((prev) =>
-            prev.map((p) => (p.id === newProduct.id ? { ...p, id: backendId } : p))
-          );
-        }
-      } else {
-        showToast("⚠️ Saved locally (MongoDB sleeping / offline).");
-      }
-    } catch {
-      showToast("⚠️ Saved locally (MongoDB connection error).");
-    }
+    showToast("🟢 Listing saved to MongoDB.");
   };
 
   const handleEditProduct = async (updatedProduct) => {
-    // 1. Instant optimistic UI update
-    setProductOverrides((previousOverrides) => {
-      const updatedOverrides = {
-        ...previousOverrides,
-        [updatedProduct.id]: updatedProduct,
-      };
-      window.localStorage.setItem(
-        "campuscart-product-overrides",
-        JSON.stringify(updatedOverrides)
-      );
-      return updatedOverrides;
-    });
-
-    setExtraProducts((previousProducts) => {
-      const exists = previousProducts.some(
-        (product) => product.id === updatedProduct.id
-      );
-      if (!exists) return previousProducts;
-      const updatedProducts = previousProducts.map((product) =>
-        product.id === updatedProduct.id ? updatedProduct : product
-      );
-      window.localStorage.setItem(
-        "campuscart-products",
-        JSON.stringify(updatedProducts)
-      );
-      return updatedProducts;
-    });
-
-    setMongoProducts((previousProducts) =>
-      previousProducts.map((product) =>
-        product.id === updatedProduct.id ? { ...product, ...updatedProduct } : product
-      )
-    );
-
-    setLocalProducts((previousProducts) =>
-      previousProducts.map((product) =>
-        product.id === updatedProduct.id ? updatedProduct : product
-      )
-    );
-
-    if (updatedProduct.stock !== undefined) {
-      setInventoryOverrides((previous) => {
-        const updatedInventory = {
-          ...previous,
-          [updatedProduct.id]: Number(updatedProduct.stock) || 0,
-        };
-        window.localStorage.setItem(
-          "campuscart-inventory",
-          JSON.stringify(updatedInventory)
-        );
-        return updatedInventory;
-      });
-    }
-
-    showToast("Updating listing in MongoDB Atlas...");
-
-    // 2. Call live MongoDB backend API
-    try {
-      const result = await updateProductOnBackend(updatedProduct.id, updatedProduct);
-      if (result.success) {
-        showToast("🟢 Listing updated in MongoDB Atlas!");
-        setDbStatus("connected");
-      } else {
-        showToast("⚠️ Updated locally (MongoDB sleeping / offline).");
-      }
-    } catch {
-      showToast("⚠️ Updated locally (MongoDB connection error).");
-    }
+    const result = await updateProductOnBackend(updatedProduct.id, updatedProduct);
+    if (!result.success) { showToast(`❌ ${result.error}`); return; }
+    await refreshProducts();
+    showToast("🟢 Listing updated in MongoDB.");
   };
 
   const handleDeleteProduct = async (productId) => {
-    // 1. Instant optimistic UI update
-    setDeletedProductIds((previousIds) => {
-      const updatedIds = [...new Set([...previousIds, productId])];
-      window.localStorage.setItem(
-        "campuscart-deleted-products",
-        JSON.stringify(updatedIds)
-      );
-      return updatedIds;
-    });
+    const result = await deleteProductOnBackend(productId);
+    if (!result.success) { showToast(`❌ ${result.error}`); return; }
+    await refreshProducts();
+    showToast("🗑️ Listing deleted from MongoDB.");
+  };
 
-    setExtraProducts((previousProducts) => {
-      const updatedProducts = previousProducts.filter(
-        (product) => product.id !== productId
-      );
-      window.localStorage.setItem(
-        "campuscart-products",
-        JSON.stringify(updatedProducts)
-      );
-      return updatedProducts;
-    });
-
-    setMongoProducts((prev) => prev.filter((product) => product.id !== productId));
-    setLocalProducts((previousProducts) =>
-      previousProducts.filter((product) => product.id !== productId)
-    );
-
-    setInventoryOverrides((previous) => {
-      const updated = { ...previous };
-      delete updated[productId];
-      window.localStorage.setItem(
-        "campuscart-inventory",
-        JSON.stringify(updated)
-      );
-      return updated;
-    });
-
-    showToast("Deleting listing from MongoDB Atlas...");
-
-    // 2. Call live MongoDB backend API
-    try {
-      const result = await deleteProductOnBackend(productId);
-      if (result.success) {
-        showToast("🗑️ Listing deleted from MongoDB Atlas!");
-        setDbStatus("connected");
-      } else {
-        showToast("⚠️ Deleted locally (MongoDB sleeping / offline).");
-      }
-    } catch {
-      showToast("⚠️ Deleted locally (MongoDB connection error).");
-    }
+  const persistCart = async (next) => {
+    setCart(next);
+    const result = await saveCart(next);
+    if (!result.success) { setCart(cart); showToast(`Could not save cart: ${result.error}`); }
   };
 
   const increaseCartQuantity = (id) => {
-    setCart((previousCart) =>
-      previousCart.map((item) => {
-        if (item.id !== id) {
-          return item;
-        }
-
-        const product = allProducts.find(
-          (productItem) => productItem.id === id,
-        );
-
-       const stock = getProductStock(product);
-        if (stock <= 0) {
-          showToast(`"${item.title}" is out of stock.`);
-          return item;
-        }
-
-        if (item.qty >= stock) {
-          showToast(`Only ${stock} × "${item.title}" available.`);
-
-          return item;
-        }
-
-        return {
-          ...item,
-          qty: item.qty + 1,
-        };
-      }),
-    );
+    const item = cart.find((entry) => entry.id === id);
+    const product = allProducts.find((entry) => entry.id === id);
+    if (!item || !product) return;
+    if (item.qty >= getProductStock(product)) { showToast(`Only ${getProductStock(product)} × "${item.title}" available.`); return; }
+    persistCart(cart.map((entry) => entry.id === id ? { ...entry, qty: entry.qty + 1 } : entry));
   };
 
   const decreaseCartQuantity = (id) => {
-    setCart((previousCart) =>
-      previousCart
-        .map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                qty: item.qty - 1,
-              }
-            : item,
-        )
-        .filter((item) => item.qty > 0),
-    );
+    persistCart(cart.map((entry) => entry.id === id ? { ...entry, qty: entry.qty - 1 } : entry).filter((entry) => entry.qty > 0));
   };
 
-  const cancelOrder = (orderId) => {
-    setOrders((previousOrders) => {
-      const updatedOrders = previousOrders.map((order) =>
-        order.id === orderId
-          ? {
-              ...order,
-              status: "Cancelled",
-              cancelledAt: new Date().toISOString(),
-            }
-          : order,
-      );
+  const cancelOrder = async (orderId) => {
+    const result = await cancelOrderOnBackend(orderId);
+    if (!result.success) { showToast(`❌ ${result.error}`); return; }
+    const refreshed = await fetchOrders();
+    if (refreshed.success) setOrders(refreshed.orders);
+    await refreshProducts();
+    showToast("Order cancelled and inventory restored.");
+  };
 
-      window.localStorage.setItem(
-        "campuscart-orders",
-        JSON.stringify(updatedOrders),
-      );
+  const handlePublishListing = handlePublishProduct;
 
-      return updatedOrders;
-    });
+  const handleCheckout = async () => {
+    if (cart.length === 0) { showToast("Your cart is empty."); return; }
+    const result = await checkoutOnBackend(cart);
+    if (!result.success) { showToast(`❌ ${result.error}`); await refreshProducts(); return; }
+    setCart([]);
+    setQrModalItem(result.data);
+    setOrders((previous) => [result.data, ...previous]);
+    await refreshProducts();
+    confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+    showToast(`🎉 Order ${result.data.id} created!`);
   };
   const startChat = (seller, item) => {
     setActiveChat({
@@ -627,143 +323,6 @@ function App() {
         },
       ],
     });
-  };
-  const handlePublishListing = (product) => {
-    setLocalProducts((previous) => [product, ...previous]);
-    navigate("/marketplace");
-
-    setToastMsg("Your listing was published successfully.");
-  };
-
-  const handleCheckout = () => {
-    if (cart.length === 0) {
-      showToast("Your cart is empty.");
-      return;
-    }
-    for (const item of cart) {
-      const product = allProducts.find(
-        (productItem) => productItem.id === item.id,
-      );
-
-      const stock = Math.max(0, Number(product?.stock) || 0);
-
-      if (item.qty > stock) {
-        showToast(
-          `"${item.title}" only has ${stock} available. Please update your cart.`,
-        );
-        return;
-      }
-
-      if (stock <= 0) {
-        showToast(`"${item.title}" is currently out of stock.`);
-        return;
-      }
-    }
-
-    const updatedInventory = { ...inventoryOverrides };
-
-for (const item of cart) {
-  const product = allProducts.find(
-    (productItem) => productItem.id === item.id
-  );
-
-  const currentStock = getProductStock(product);
-
-  updatedInventory[item.id] = Math.max(
-    0,
-    currentStock - item.qty
-  );
-}
-
-setInventoryOverrides(updatedInventory);
-
-window.localStorage.setItem(
-  "campuscart-inventory",
-  JSON.stringify(updatedInventory)
-);
-    const total = cart.reduce(
-      (sum, item) => sum + Number(item.price || 0) * item.qty,
-      0,
-    );
-
-    const orderId = `CC-${Date.now().toString().slice(-8)}`;
-
-    const pickupToken = Math.random().toString(36).slice(2, 8).toUpperCase();
-
-    const newOrder = {
-      id: orderId,
-      createdAt: new Date().toISOString(),
-      status: "Pending Pickup",
-      pickupToken,
-      pickupLocation: cart[0]?.pickupLocation || "Campus Safe Desk",
-      items: cart,
-      total,
-      buyer: currentUser
-        ? {
-            name: currentUser.name,
-            email: currentUser.email,
-            roll: currentUser.roll,
-          }
-        : null,
-    };
-
-    setOrders((previousOrders) => {
-      const nextOrders = [newOrder, ...previousOrders];
-
-      window.localStorage.setItem(
-        "campuscart-orders",
-        JSON.stringify(nextOrders),
-      );
-
-      return nextOrders;
-    });
-
-    // Delete purchased item(s) immediately from the marketplace page & database upon QR generation
-    const purchasedIds = cart.map((item) => item.id);
-
-    setDeletedProductIds((previousIds) => {
-      const updatedIds = [...new Set([...previousIds, ...purchasedIds])];
-      window.localStorage.setItem(
-        "campuscart-deleted-products",
-        JSON.stringify(updatedIds),
-      );
-      return updatedIds;
-    });
-
-    setMongoProducts((prev) =>
-      prev.filter((product) => !purchasedIds.includes(product.id))
-    );
-
-    setExtraProducts((prev) => {
-      const updated = prev.filter((product) => !purchasedIds.includes(product.id));
-      window.localStorage.setItem("campuscart-products", JSON.stringify(updated));
-      return updated;
-    });
-
-    setLocalProducts((prev) =>
-      prev.filter((product) => !purchasedIds.includes(product.id))
-    );
-
-    // Permanently remove purchased item(s) from live MongoDB Atlas backend
-    purchasedIds.forEach(async (id) => {
-      try {
-        await deleteProductOnBackend(id);
-      } catch (err) {
-        console.warn("Could not delete purchased product from MongoDB Atlas:", err);
-      }
-    });
-
-    setCart([]);
-
-    setQrModalItem(newOrder);
-
-    confetti({
-      particleCount: 90,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
-
-    showToast(`🎉 Order ${orderId} created! Item removed from marketplace.`);
   };
   return (
     <div className="relative min-h-screen flex flex-col bg-[#fcfcfd]">
@@ -1159,27 +718,26 @@ window.localStorage.setItem(
                 onRemoveFromWishlist={removeFromWishlist}
                 wishlistItems={wishlistItems}
                 initialProduct={productToOpen}
-                extraProducts={extraProducts}
-                inventoryOverrides={inventoryOverrides}
-                productOverrides={productOverrides}
               />
             }
           />
           <Route
-            path="/sell"
-            element={
-              <SellItemView
-                onBack={() => navigateTo("/marketplace")}
-                onPublish={handlePublishProduct}
-              />
-            }
-          />
+  path="/sell"
+  element={
+    <SellItemView
+      currentUser={currentUser}
+      onBack={() => navigateTo("/marketplace")}
+      onPublish={handlePublishProduct}
+    />
+  }
+/>
           <Route
             path="/orders"
             element={
               <OrderHistory
                 orders={orders}
                 onBack={() => navigateTo("/marketplace")}
+                onCancelOrder={cancelOrder}
               />
             }
           />
@@ -1225,11 +783,7 @@ window.localStorage.setItem(
             element={
               <CartFullView
                 cart={cart}
-                onRemove={(id) =>
-                  setCart((previousCart) =>
-                    previousCart.filter((item) => item.id !== id),
-                  )
-                }
+                onRemove={(id) => persistCart(cart.filter((item) => item.id !== id))}
                 onIncrease={increaseCartQuantity}
                 onDecrease={decreaseCartQuantity}
                 onContinue={() => navigateTo("/marketplace")}

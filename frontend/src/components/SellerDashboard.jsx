@@ -8,46 +8,37 @@ function SellerDashboard({
 }) {
   const [editingProduct, setEditingProduct] = useState(null);
 
+  // Only show products belonging to the currently logged-in seller.
   const myProducts = useMemo(() => {
-    if (!currentUser) {
-      // Demo / Viva mode: Allow teacher to test Edit & Delete directly without login hurdles
-      return products;
-    }
+  const userId =
+    currentUser?.id ||
+    currentUser?._id ||
+    currentUser?.userId ||
+    currentUser?.sub;
 
-    const currentUserName =
-      currentUser?.name || currentUser?.username || currentUser?.email;
+  if (!userId) return [];
 
-    const filtered = products.filter((product) => {
-      const sellerName =
-        typeof product.seller === "object"
-          ? product.seller?.name
-          : product.seller;
-
-      return (
-        sellerName === currentUserName ||
-        sellerName === "You" ||
-        product.sellerId === currentUser?.id ||
-        product.isLocalListing
-      );
-    });
-
-    return filtered.length > 0 ? filtered : products;
-  }, [products, currentUser]);
+  return products.filter(
+    (product) => String(product.sellerId) === String(userId)
+  );
+}, [products, currentUser]);
 
   const totalProducts = myProducts.length;
 
   const totalStock = myProducts.reduce(
-    (total, product) => total + Math.max(0, Number(product.stock) || 0),
-    0,
+    (total, product) =>
+      total + Math.max(0, Number(product.stock) || 0),
+    0
   );
 
   const outOfStock = myProducts.filter(
-    (product) => Number(product.stock) <= 0,
+    (product) => Number(product.stock) <= 0
   ).length;
 
   return (
     <div className="min-h-screen bg-neutral-50 px-4 pb-8 pt-24 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-black tracking-tight text-neutral-900">
@@ -61,6 +52,8 @@ function SellerDashboard({
 
         {/* Stats */}
         <div className="mb-8 grid gap-4 sm:grid-cols-3">
+
+          {/* Total Listings */}
           <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
             <p className="text-sm font-medium text-neutral-500">
               Total Listings
@@ -71,16 +64,22 @@ function SellerDashboard({
             </p>
           </div>
 
+          {/* Total Stock */}
           <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-neutral-500">Total Stock</p>
+            <p className="text-sm font-medium text-neutral-500">
+              Total Stock
+            </p>
 
             <p className="mt-2 text-3xl font-black text-neutral-900">
               {totalStock}
             </p>
           </div>
 
+          {/* Out of Stock */}
           <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-neutral-500">Out of Stock</p>
+            <p className="text-sm font-medium text-neutral-500">
+              Out of Stock
+            </p>
 
             <p className="mt-2 text-3xl font-black text-red-600">
               {outOfStock}
@@ -90,8 +89,11 @@ function SellerDashboard({
 
         {/* Listings */}
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+
           <div className="border-b border-neutral-200 px-5 py-4">
-            <h2 className="text-lg font-bold text-neutral-900">My Listings</h2>
+            <h2 className="text-lg font-bold text-neutral-900">
+              My Listings
+            </h2>
           </div>
 
           {myProducts.length === 0 ? (
@@ -106,32 +108,46 @@ function SellerDashboard({
             </div>
           ) : (
             <div className="divide-y divide-neutral-100">
+
               {myProducts.map((product) => {
-                const stock = Math.max(0, Number(product.stock) || 0);
+                const stock = Math.max(
+                  0,
+                  Number(product.stock) || 0
+                );
 
                 return (
                   <div
                     key={product.id}
                     className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
                   >
+
                     {/* Product */}
                     <div className="flex min-w-0 items-center gap-4">
+
                       <img
-                        src={product.image || "https://via.placeholder.com/100"}
+                        src={
+                          product.image ||
+                          "https://via.placeholder.com/100"
+                        }
                         alt={product.title}
                         className="h-16 w-16 rounded-xl object-cover"
                       />
 
                       <div className="min-w-0">
+
                         <h3 className="truncate font-bold text-neutral-900">
                           {product.title}
                         </h3>
 
                         <p className="mt-1 text-sm text-neutral-500">
-                          ₹{Number(product.price || 0).toLocaleString("en-IN")}
+                          ₹
+                          {Number(
+                            product.price || 0
+                          ).toLocaleString("en-IN")}
                         </p>
 
                         <div className="mt-2 flex flex-wrap gap-2 text-xs">
+
                           <span className="rounded-full bg-neutral-100 px-2.5 py-1 font-semibold text-neutral-600">
                             {product.category || "Other"}
                           </span>
@@ -139,12 +155,14 @@ function SellerDashboard({
                           <span className="rounded-full bg-blue-50 px-2.5 py-1 font-semibold text-blue-700">
                             {product.mode || "BUY"}
                           </span>
+
                         </div>
                       </div>
                     </div>
 
                     {/* Stock + Actions */}
                     <div className="flex items-center gap-3">
+
                       <span
                         className={`rounded-full px-3 py-1.5 text-xs font-bold ${
                           stock === 0
@@ -154,12 +172,16 @@ function SellerDashboard({
                               : "bg-emerald-50 text-emerald-700"
                         }`}
                       >
-                        {stock === 0 ? "Out of Stock" : `${stock} in stock`}
+                        {stock === 0
+                          ? "Out of Stock"
+                          : `${stock} in stock`}
                       </span>
 
                       <button
                         type="button"
-                        onClick={() => setEditingProduct(product)}
+                        onClick={() =>
+                          setEditingProduct(product)
+                        }
                         className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-100"
                       >
                         Edit
@@ -167,15 +189,19 @@ function SellerDashboard({
 
                       <button
                         type="button"
-                        onClick={() => onDeleteProduct?.(product.id)}
+                        onClick={() =>
+                          onDeleteProduct?.(product.id)
+                        }
                         className="rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
                       >
                         Delete
                       </button>
+
                     </div>
                   </div>
                 );
               })}
+
             </div>
           )}
         </div>
@@ -200,7 +226,11 @@ function SellerDashboard({
    EDIT PRODUCT MODAL
    ========================================================================= */
 
-function EditProductModal({ product, onClose, onSave }) {
+function EditProductModal({
+  product,
+  onClose,
+  onSave,
+}) {
   const [form, setForm] = useState({
     title: product.title || "",
     description: product.description || "",
@@ -227,18 +257,24 @@ function EditProductModal({ product, onClose, onSave }) {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    if (!form.title.trim()) {
-      return;
-    }
+    if (!form.title.trim()) return;
 
-    if (!form.description.trim()) {
-      return;
-    }
+    if (!form.description.trim()) return;
 
-    if (Number(form.price) <= 0) {
-      return;
-    }
+    if (Number(form.price) <= 0) return;
 
+    if (Number(form.stock) < 0) return;
+
+    /*
+     * Keep the original product object intact.
+     * This preserves:
+     * - id
+     * - sellerId
+     * - seller
+     * - createdAt
+     *
+     * Only editable fields are replaced.
+     */
     onSave({
       ...product,
 
@@ -254,21 +290,33 @@ function EditProductModal({ product, onClose, onSave }) {
 
       mode: form.mode,
 
-      rentalRate: form.mode === "RENT" ? form.rentalRate.trim() : "",
+      rentalRate:
+        form.mode === "RENT"
+          ? form.rentalRate.trim()
+          : "",
 
-      exchangeWish: form.mode === "EXCHANGE" ? form.exchangeWish.trim() : "",
+      exchangeWish:
+        form.mode === "EXCHANGE"
+          ? form.exchangeWish.trim()
+          : "",
 
       pickupLocation: form.pickupLocation.trim(),
 
-      stock: Math.max(0, Number(form.stock) || 0),
+      stock: Math.max(
+        0,
+        Number(form.stock) || 0
+      ),
     });
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+
       <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
+
         {/* Modal Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-200 bg-white px-6 py-5">
+
           <div>
             <h2 className="text-xl font-black text-neutral-900">
               Edit Listing
@@ -287,10 +335,15 @@ function EditProductModal({ product, onClose, onSave }) {
           >
             ×
           </button>
+
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5 p-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5 p-6"
+        >
+
           {/* Product Title */}
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-neutral-700">
@@ -300,7 +353,12 @@ function EditProductModal({ product, onClose, onSave }) {
             <input
               type="text"
               value={form.title}
-              onChange={(event) => updateField("title", event.target.value)}
+              onChange={(event) =>
+                updateField(
+                  "title",
+                  event.target.value
+                )
+              }
               required
               className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
             />
@@ -315,7 +373,10 @@ function EditProductModal({ product, onClose, onSave }) {
             <textarea
               value={form.description}
               onChange={(event) =>
-                updateField("description", event.target.value)
+                updateField(
+                  "description",
+                  event.target.value
+                )
               }
               rows={4}
               required
@@ -325,6 +386,7 @@ function EditProductModal({ product, onClose, onSave }) {
 
           {/* Price + Stock */}
           <div className="grid gap-4 sm:grid-cols-2">
+
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-neutral-700">
                 Price (₹)
@@ -335,7 +397,14 @@ function EditProductModal({ product, onClose, onSave }) {
                 min="0.01"
                 step="0.01"
                 value={form.price}
-                onChange={(event) => updateField("price", event.target.value)}
+                onChange={(event) =>
+                  updateField(
+                    "price",
+                    event.target.value
+                  )
+                }
+                required
+                className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
               />
             </div>
 
@@ -347,16 +416,24 @@ function EditProductModal({ product, onClose, onSave }) {
               <input
                 type="number"
                 min="0"
+                step="1"
                 value={form.stock}
-                onChange={(event) => updateField("stock", event.target.value)}
+                onChange={(event) =>
+                  updateField(
+                    "stock",
+                    event.target.value
+                  )
+                }
                 required
                 className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
               />
             </div>
+
           </div>
 
           {/* Category + Condition */}
           <div className="grid gap-4 sm:grid-cols-2">
+
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-neutral-700">
                 Category
@@ -366,7 +443,10 @@ function EditProductModal({ product, onClose, onSave }) {
                 type="text"
                 value={form.category}
                 onChange={(event) =>
-                  updateField("category", event.target.value)
+                  updateField(
+                    "category",
+                    event.target.value
+                  )
                 }
                 className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
               />
@@ -381,11 +461,15 @@ function EditProductModal({ product, onClose, onSave }) {
                 type="text"
                 value={form.condition}
                 onChange={(event) =>
-                  updateField("condition", event.target.value)
+                  updateField(
+                    "condition",
+                    event.target.value
+                  )
                 }
                 className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
               />
             </div>
+
           </div>
 
           {/* Listing Mode */}
@@ -395,20 +479,26 @@ function EditProductModal({ product, onClose, onSave }) {
             </label>
 
             <div className="grid grid-cols-3 gap-2">
-              {["BUY", "RENT", "EXCHANGE"].map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => updateField("mode", mode)}
-                  className={`rounded-xl px-3 py-3 text-xs font-bold transition ${
-                    form.mode === mode
-                      ? "bg-neutral-950 text-white"
-                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-                  }`}
-                >
-                  {mode}
-                </button>
-              ))}
+
+              {["BUY", "RENT", "EXCHANGE"].map(
+                (mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() =>
+                      updateField("mode", mode)
+                    }
+                    className={`rounded-xl px-3 py-3 text-xs font-bold transition ${
+                      form.mode === mode
+                        ? "bg-neutral-950 text-white"
+                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                )
+              )}
+
             </div>
           </div>
 
@@ -423,7 +513,10 @@ function EditProductModal({ product, onClose, onSave }) {
                 type="text"
                 value={form.rentalRate}
                 onChange={(event) =>
-                  updateField("rentalRate", event.target.value)
+                  updateField(
+                    "rentalRate",
+                    event.target.value
+                  )
                 }
                 placeholder="e.g. ₹50/day"
                 className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
@@ -442,7 +535,10 @@ function EditProductModal({ product, onClose, onSave }) {
                 type="text"
                 value={form.exchangeWish}
                 onChange={(event) =>
-                  updateField("exchangeWish", event.target.value)
+                  updateField(
+                    "exchangeWish",
+                    event.target.value
+                  )
                 }
                 placeholder="e.g. Engineering textbook"
                 className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
@@ -460,7 +556,10 @@ function EditProductModal({ product, onClose, onSave }) {
               type="text"
               value={form.pickupLocation}
               onChange={(event) =>
-                updateField("pickupLocation", event.target.value)
+                updateField(
+                  "pickupLocation",
+                  event.target.value
+                )
               }
               required
               className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
@@ -469,6 +568,7 @@ function EditProductModal({ product, onClose, onSave }) {
 
           {/* Actions */}
           <div className="flex justify-end gap-3 border-t border-neutral-200 pt-5">
+
             <button
               type="button"
               onClick={onClose}
@@ -483,7 +583,9 @@ function EditProductModal({ product, onClose, onSave }) {
             >
               Save Changes
             </button>
+
           </div>
+
         </form>
       </div>
     </div>

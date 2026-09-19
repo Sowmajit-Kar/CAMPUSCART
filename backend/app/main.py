@@ -8,6 +8,9 @@ from app.core.config import settings
 from app.core.mongodb import get_database, check_mongo_health, mongo_manager
 from app.routes.products import router as products_router
 from app.routes.auth import router as auth_router
+from app.routes.cart import router as cart_router
+from app.routes.wishlist import router as wishlist_router
+from app.routes.orders import router as orders_router
 from app.data.initial_data import INITIAL_PRODUCTS
 
 logging.basicConfig(level=logging.INFO)
@@ -67,9 +70,8 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "https://*.vercel.app",
-        "*" # Allows seamless teacher viva & lab demos
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -98,5 +100,8 @@ async def mongodb_health_check():
 # --------------------------------------------------
 # Mount API Routers
 # --------------------------------------------------
-app.include_router(products_router)
 app.include_router(auth_router)
+app.include_router(products_router)
+app.include_router(cart_router)
+app.include_router(wishlist_router)
+app.include_router(orders_router)
