@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { CAMPUS_DATA } from '../data/mockData';
 import CircularWheelShowcase from './CircularWheelShowcase';
 
 function HomrPageIdeaView({ products = [], onExplore, onAddToCart, onOpenSeller, onStartChat, onOpenQr, onOpenLogin }) {
-      const displayProducts = (products && products.length > 0) ? products : (window.CAMPUS_DATA?.products || []);
+      const displayProducts = products || [];
       const [activeFaq, setActiveFaq] = useState(0);
 
       const faqs = [
