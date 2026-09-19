@@ -1,156 +1,528 @@
-// =============================================================================
-// CampusCart API Client with Live MongoDB & Offline Fallback Architecture
-// =============================================================================
-import { CAMPUS_DATA } from "../data/mockData";
+// CampusCart API client.
+// MongoDB/FastAPI backend is the only persistent source of truth.
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://campuscart-6m90.onrender.com";
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-/**
- * Fetch products from live MongoDB backend with fallback to mock data
- */
-export async function fetchProductsFromBackend() {
+async function request(path, options = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "include",
+
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+
+    ...options,
+  });
+
+  const text = await res.text();
+
+  let data = null;
+
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout for cold start
-    const res = await fetch(`${API_BASE_URL}/api/v1/products?limit=100`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      return { success: true, products: data, source: "mongodb" };
-    }
-    return { success: false, products: CAMPUS_DATA.products, source: "mock-fallback" };
-  } catch (err) {
-    console.warn("MongoDB backend sleeping or unreachable. Using mock data safety fallback:", err.message);
-    return { success: false, products: CAMPUS_DATA.products, source: "mock-fallback" };
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = {
+      detail: text,
+    };
   }
+
+  if (!res.ok) {
+    const message =
+      data?.detail ||
+      data?.message ||
+      `HTTP ${res.status}`;
+
+    const error = new Error(message);
+    error.status = res.status;
+
+    throw error;
+  }
+
+  return data;
 }
 
-/**
- * Check live backend & MongoDB health status
- */
+/* =========================================================================
+   HEALTH
+   ========================================================================= */
+
 export async function checkBackendHealth() {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(`${API_BASE_URL}/api/v1/health/mongodb`, {
-      signal: controller.signal,
+    return await request("/api/v1/health/mongodb", {
+      method: "GET",
     });
-    clearTimeout(timeoutId);
-    if (!res.ok) return { connected: false, status: "unreachable" };
-    return await res.json();
   } catch {
-    return { connected: false, status: "offline" };
+    return {
+      connected: false,
+      status: "offline",
+    };
   }
 }
 
-/**
- * Create a new product in MongoDB Atlas
- */
+/* =========================================================================
+   AUTH
+   ========================================================================= */
+
+export async function getCurrentUser() {
+  try {
+    const data = await request("/api/v1/auth/me");
+
+    const user = data?.user || data;
+
+    const normalizedUser = {
+      ...user,
+
+      id:
+        user?.id ||
+        user?._id ||
+        user?.userId ||
+        user?.sub ||
+        null,
+    };
+
+    return {
+      success: true,
+      user: normalizedUser,
+    };
+  } catch (error) {
+    if (error.status === 401) {
+      return {
+        success: false,
+        user: null,
+      };
+    }
+
+    return {
+      success: false,
+      user: null,
+      error: error.message,
+    };
+  }
+}
+
+export async function loginUser(email, password) {
+  try {
+    const data = await request("/api/v1/auth/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    });
+
+    const user = data?.user || data;
+
+    const normalizedUser = {
+      ...user,
+
+      id:
+        user?.id ||
+        user?._id ||
+        user?.userId ||
+        user?.sub ||
+        null,
+    };
+
+    return {
+      success: true,
+      ...data,
+      user: normalizedUser,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+export async function logoutUser() {
+  try {
+    const data = await request("/api/v1/auth/logout", {
+      method: "POST",
+    });
+
+    return {
+      success: true,
+      ...data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+/* =========================================================================
+   PRODUCTS
+   ========================================================================= */
+
+export async function fetchProductsFromBackend() {
+  try {
+    const data = await request(
+      "/api/v1/products?limit=100&status=all",
+      {
+        method: "GET",
+      }
+    );
+
+    const products = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.products)
+        ? data.products
+        : [];
+
+    return {
+      success: true,
+      products,
+      source: "mongodb",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      products: [],
+      source: "offline",
+      error: error.message,
+    };
+  }
+}
+
 export async function createProductOnBackend(productData) {
   try {
     const payload = {
-      title: productData.title || "Campus Listing",
-      category: productData.category || "Notes & Material",
-      stream: productData.stream || "engineering",
-      price: Number(productData.price) || 0,
-      originalPrice: productData.originalPrice ? Number(productData.originalPrice) : null,
-      mode: productData.mode || "BUY",
-      condition: productData.condition || "Like New",
-      stock: Number(productData.stock) || 1,
-      campus: productData.campus || "Jadavpur University",
-      pickupLocation: productData.pickupLocation || "Central Library Foyer",
-      image: productData.image || "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=900&auto=format&fit=crop&q=80",
-      description: productData.description || "",
-      seller: {
-        name: productData.seller?.name || "Student Seller",
-        email: productData.seller?.email || "student@campus.edu",
-        avatar: productData.seller?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80",
-        trustScore: Number(productData.seller?.trustScore) || 98,
-        verified: Boolean(productData.seller?.verified),
-        department: productData.seller?.department || "Campus Student"
-      }
+      title: productData?.title || "Campus Listing",
+
+      category:
+        productData?.category || "Notes & Material",
+
+      stream:
+        productData?.stream || "engineering",
+
+      price:
+        Number(productData?.price) || 0,
+
+      originalPrice:
+        productData?.originalPrice !== undefined &&
+        productData?.originalPrice !== null &&
+        productData?.originalPrice !== ""
+          ? Number(productData.originalPrice)
+          : null,
+
+      mode:
+        productData?.mode || "BUY",
+
+      condition:
+        productData?.condition || "Like New",
+
+      stock:
+        Math.max(
+          0,
+          Number(productData?.stock) || 1
+        ),
+
+      campus:
+        productData?.campus ||
+        "Jadavpur University",
+
+      pickupLocation:
+        productData?.pickupLocation ||
+        "Central Library Foyer",
+
+      image:
+        productData?.image ||
+        "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=900&auto=format&fit=crop&q=80",
+
+      description:
+        productData?.description || "",
+
+      sellerId:
+        productData?.sellerId || null,
+
+      seller:
+        productData?.seller || null,
+
+      rentalRate:
+        productData?.rentalRate || "",
+
+      exchangeWish:
+        productData?.exchangeWish || "",
     };
 
-    const res = await fetch(`${API_BASE_URL}/api/v1/products`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const data = await request(
+      "/api/v1/products",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`HTTP ${res.status}: ${errText}`);
-    }
-
-    const data = await res.json();
-    return { success: true, data };
-  } catch (err) {
-    console.warn("Could not save to remote MongoDB Atlas:", err.message);
-    return { success: false, error: err.message };
+    return {
+      success: true,
+      data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 }
 
-/**
- * Update an existing product in MongoDB Atlas
- */
-export async function updateProductOnBackend(productId, updateData) {
+export async function updateProductOnBackend(
+  productId,
+  updateData
+) {
   try {
-    const payload = {};
-    if (updateData.title !== undefined) payload.title = updateData.title;
-    if (updateData.category !== undefined) payload.category = updateData.category;
-    if (updateData.stream !== undefined) payload.stream = updateData.stream;
-    if (updateData.price !== undefined) payload.price = Number(updateData.price);
-    if (updateData.originalPrice !== undefined) payload.originalPrice = Number(updateData.originalPrice);
-    if (updateData.mode !== undefined) payload.mode = updateData.mode;
-    if (updateData.condition !== undefined) payload.condition = updateData.condition;
-    if (updateData.stock !== undefined) payload.stock = Number(updateData.stock);
-    if (updateData.status !== undefined) payload.status = updateData.status;
-    if (updateData.campus !== undefined) payload.campus = updateData.campus;
-    if (updateData.pickupLocation !== undefined) payload.pickupLocation = updateData.pickupLocation;
-    if (updateData.image !== undefined) payload.image = updateData.image;
-    if (updateData.description !== undefined) payload.description = updateData.description;
+    const fields = [
+      "title",
+      "category",
+      "stream",
+      "price",
+      "originalPrice",
+      "mode",
+      "condition",
+      "stock",
+      "status",
+      "campus",
+      "pickupLocation",
+      "image",
+      "description",
+      "rentalRate",
+      "exchangeWish",
+    ];
 
-    const res = await fetch(`${API_BASE_URL}/api/v1/products/${productId}`, {
+    const payload = Object.fromEntries(
+      fields
+        .filter(
+          (key) =>
+            updateData?.[key] !== undefined
+        )
+        .map((key) => [
+          key,
+          ["price", "originalPrice", "stock"].includes(
+            key
+          )
+            ? Number(updateData[key])
+            : updateData[key],
+        ])
+    );
+
+    const data = await request(
+      `/api/v1/products/${productId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }
+    );
+
+    return {
+      success: true,
+      data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+export async function deleteProductOnBackend(
+  productId
+) {
+  try {
+    const data = await request(
+      `/api/v1/products/${productId}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    return {
+      success: true,
+      data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+/* =========================================================================
+   CART
+   ========================================================================= */
+
+export async function fetchCart() {
+  try {
+    const data = await request("/api/v1/cart", {
+      method: "GET",
+    });
+
+    return {
+      success: true,
+      ...data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      items: [],
+      error: error.message,
+    };
+  }
+}
+
+export async function saveCart(items) {
+  try {
+    const data = await request("/api/v1/cart", {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        items,
+      }),
     });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`HTTP ${res.status}: ${errText}`);
-    }
-
-    const data = await res.json();
-    return { success: true, data };
-  } catch (err) {
-    console.warn("Could not update remote MongoDB Atlas:", err.message);
-    return { success: false, error: err.message };
+    return {
+      success: true,
+      ...data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      items,
+      error: error.message,
+    };
   }
 }
 
-/**
- * Delete a product from MongoDB Atlas
- */
-export async function deleteProductOnBackend(productId) {
+/* =========================================================================
+   WISHLIST
+   ========================================================================= */
+
+export async function fetchWishlist() {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/products/${productId}`, {
-      method: "DELETE",
-    });
+    const data = await request(
+      "/api/v1/wishlist",
+      {
+        method: "GET",
+      }
+    );
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`HTTP ${res.status}: ${errText}`);
-    }
+    return {
+      success: true,
+      ...data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      items: [],
+      error: error.message,
+    };
+  }
+}
 
-    const data = await res.json();
-    return { success: true, data };
-  } catch (err) {
-    console.warn("Could not delete from remote MongoDB Atlas:", err.message);
-    return { success: false, error: err.message };
+export async function saveWishlist(items) {
+  try {
+    const data = await request(
+      "/api/v1/wishlist",
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          items,
+        }),
+      }
+    );
+
+    return {
+      success: true,
+      ...data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      items,
+      error: error.message,
+    };
+  }
+}
+
+/* =========================================================================
+   ORDERS
+   ========================================================================= */
+
+export async function fetchOrders() {
+  try {
+    const data = await request(
+      "/api/v1/orders",
+      {
+        method: "GET",
+      }
+    );
+
+    const orders = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.orders)
+        ? data.orders
+        : [];
+
+    return {
+      success: true,
+      orders,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      orders: [],
+      error: error.message,
+    };
+  }
+}
+
+export async function checkoutOnBackend(items) {
+  try {
+    const data = await request(
+      "/api/v1/orders/checkout",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          items,
+        }),
+      }
+    );
+
+    return {
+      success: true,
+      data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+export async function cancelOrderOnBackend(
+  orderId
+) {
+  try {
+    const data = await request(
+      `/api/v1/orders/${orderId}/cancel`,
+      {
+        method: "POST",
+      }
+    );
+
+    return {
+      success: true,
+      data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 }
