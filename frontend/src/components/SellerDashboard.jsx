@@ -10,12 +10,18 @@ function SellerDashboard({
 
   // Only show products belonging to the currently logged-in seller.
   const myProducts = useMemo(() => {
-    if (!currentUser?.id) return [];
+  const userId =
+    currentUser?.id ||
+    currentUser?._id ||
+    currentUser?.userId ||
+    currentUser?.sub;
 
-    return products.filter(
-      (product) => product.sellerId === currentUser.id
-    );
-  }, [products, currentUser]);
+  if (!userId) return [];
+
+  return products.filter(
+    (product) => String(product.sellerId) === String(userId)
+  );
+}, [products, currentUser]);
 
   const totalProducts = myProducts.length;
 
