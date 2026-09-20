@@ -7,10 +7,12 @@ export const API_BASE_URL =
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     credentials: "include",
+
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
+
     ...options,
   });
 
@@ -113,7 +115,6 @@ export async function loginUser(email, password) {
 
     const normalizedUser = {
       ...user,
-
       id:
         user?.id ||
         user?._id ||
