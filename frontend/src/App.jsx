@@ -154,44 +154,44 @@ function App() {
   };
 
   const handleLogin = async (customEmail) => {
-  const email = customEmail || loginEmail;
+    const email = customEmail || loginEmail;
 
-  try {
-    const result = await loginUser(
-      email,
-      loginPassword || "campuscart-demo-password"
-    );
+    try {
+      const result = await loginUser(
+        email,
+        loginPassword || "campuscart-demo-password"
+      );
 
-    if (!result?.success || !result?.user) {
-      showToast(result?.error || "Login failed.");
-      return;
+      if (!result?.success || !result?.user) {
+        showToast(result?.error || "Login failed.");
+        return;
+      }
+
+      const user = result.user;
+
+      setCurrentUser({
+        ...user,
+        id: user.id || user._id || user.userId || user.sub,
+      });
+      setIsLoggedIn(true);
+      setIsLoginOpen(false);
+
+      if (window.confetti) {
+        window.confetti({ particleCount: 80, spread: 65, origin: { y: 0.5 } });
+      }
+
+      navigate("/home");
+
+      showToast(
+        `🎉 Authenticated as ${
+          user.roll || user.email
+        }! Welcome to CampusCart.`
+      );
+    } catch (error) {
+      console.error("Login error:", error);
+      showToast(error.message || "Login failed.");
     }
-
-    const user = result.user;
-
-    setCurrentUser({
-      ...user,
-      id: user.id || user._id || user.userId || user.sub,
-    });
-    setIsLoggedIn(true);
-    setIsLoginOpen(false);
-
-    if (window.confetti) {
-      window.confetti({ particleCount: 80, spread: 65, origin: { y: 0.5 } });
-    }
-
-    navigate("/home");
-
-    showToast(
-      `🎉 Authenticated as ${
-        user.roll || user.email
-      }! Welcome to CampusCart.`
-    );
-  } catch (error) {
-    console.error("Login error:", error);
-    showToast(error.message || "Login failed.");
-  }
-};
+  };
 
   const handleLogout = async () => {
     await logoutUser();
