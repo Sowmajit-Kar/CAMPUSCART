@@ -4,15 +4,25 @@
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-async function request(path, options = {}) {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    credentials: "include",
+// Token helpers — stored in localStorage so session survives page refresh
+export function getStoredToken() {
+  try { return localStorage.getItem("campuscart_token") || null; } catch { return null; }
+}
+export function setStoredToken(token) {
+  try { if (token) localStorage.setItem("campuscart_token", token); else localStorage.removeItem("campuscart_token"); } catch {}
+}
 
+async function request(path, options = {}) {
+  const token = getStoredToken();
+
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    // Do NOT use credentials:"include" — it forces CORS preflight which Render blocks.
+    // Instead send token in Authorization header (simple CORS request).
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
-
     ...options,
   });
 
@@ -111,6 +121,11 @@ export async function loginUser(email, password) {
       }),
     });
 
+    // Save token to localStorage so all future requests are authenticated
+    if (data?.token) {
+      setStoredToken(data.token);
+    }
+
     const user = data?.user || data;
 
     const normalizedUser = {
@@ -137,6 +152,8 @@ export async function loginUser(email, password) {
 }
 
 export async function logoutUser() {
+  // Clear stored token immediately
+  setStoredToken(null);
   try {
     const data = await request("/api/v1/auth/logout", {
       method: "POST",

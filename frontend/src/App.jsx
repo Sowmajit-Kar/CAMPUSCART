@@ -37,6 +37,8 @@ import {
   fetchOrders,
   checkoutOnBackend,
   cancelOrderOnBackend,
+  getStoredToken,
+  setStoredToken,
 } from "./services/api";
 
 function App() {
@@ -69,32 +71,49 @@ function App() {
     Math.max(0, Number(product?.stock) || 0);
 
   useEffect(() => {
-  const restoreSession = async () => {
-    try {
-      const result = await getCurrentUser();
+    // Restore session from localStorage token (avoids CORS cookie issues)
+    const restoreSession = async () => {
+      try {
+        const token = getStoredToken();
+        if (!token) {
+          setCurrentUser(null);
+          setIsLoggedIn(false);
+          setAuthLoading(false);
+          return;
+        }
 
-      if (result?.success && result?.user) {
-        const user = result.user;
+        // Try to get user from backend using stored token
+        const result = await getCurrentUser();
 
-        setCurrentUser({
-          ...user,
-          id: user.id || user._id || user.userId || user.sub,
-        });
-
-        setIsLoggedIn(true);
-      } else {
+        if (result?.success && result?.user) {
+          const user = result.user;
+          setCurrentUser({
+            ...user,
+            id: user.id || user._id || user.userId || user.sub,
+          });
+          setIsLoggedIn(true);
+        } else {
+          // Token exists but backend down — restore from localStorage cache
+          const cached = (() => { try { return JSON.parse(localStorage.getItem("campuscart-user")); } catch { return null; } })();
+          if (cached) {
+            setCurrentUser(cached);
+            setIsLoggedIn(true);
+          } else {
+            setCurrentUser(null);
+            setIsLoggedIn(false);
+          }
+        }
+      } catch (error) {
+        console.error("Session restore failed:", error);
         setCurrentUser(null);
         setIsLoggedIn(false);
+      } finally {
+        setAuthLoading(false);
       }
-    } catch (error) {
-      console.error("Session restore failed:", error);
-      setCurrentUser(null);
-      setIsLoggedIn(false);
-    }
-  };
+    };
 
-  restoreSession();
-}, []);
+    restoreSession();
+  }, []);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -168,13 +187,17 @@ function App() {
       }
 
       const user = result.user;
-
-      setCurrentUser({
+      const userObj = {
         ...user,
         id: user.id || user._id || user.userId || user.sub,
-      });
+      };
+
+      setCurrentUser(userObj);
       setIsLoggedIn(true);
       setIsLoginOpen(false);
+
+      // Cache user in localStorage for session restore on page refresh
+      try { localStorage.setItem("campuscart-user", JSON.stringify(userObj)); } catch {}
 
       if (window.confetti) {
         window.confetti({ particleCount: 80, spread: 65, origin: { y: 0.5 } });
@@ -194,7 +217,8 @@ function App() {
   };
 
   const handleLogout = async () => {
-    await logoutUser();
+    await logoutUser(); // also clears token via setStoredToken(null)
+    try { localStorage.removeItem("campuscart-user"); } catch {}
     setIsLoggedIn(false);
     setCurrentUser(null);
     setCart([]);
