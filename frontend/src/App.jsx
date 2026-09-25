@@ -1021,261 +1021,188 @@ function App() {
       </footer>
 
       {/* =========================================================================
-              MODAL: AUTH — Login & Register (Institutional Domain Access)
+              MODAL: AUTH — Login & Register (Glassmorphic Apple Style)
              ========================================================================= */}
       {isLoginOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-neutral-100 relative overflow-hidden">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}
+        >
+          <div className="relative w-full max-w-md">
+            {/* Ambient glow orbs */}
+            <div aria-hidden="true" style={{ position:"absolute",top:"-80px",left:"-60px",width:"280px",height:"280px",borderRadius:"50%",background:"radial-gradient(circle,rgba(120,80,255,0.28) 0%,transparent 70%)",filter:"blur(32px)",pointerEvents:"none",zIndex:0 }} />
+            <div aria-hidden="true" style={{ position:"absolute",bottom:"-60px",right:"-40px",width:"220px",height:"220px",borderRadius:"50%",background:"radial-gradient(circle,rgba(0,200,180,0.22) 0%,transparent 70%)",filter:"blur(28px)",pointerEvents:"none",zIndex:0 }} />
 
-            {/* Close button */}
-            <button
-              onClick={() => { setIsLoginOpen(false); setAuthTab("login"); }}
-              className="absolute top-5 right-5 z-10 text-neutral-400 hover:text-neutral-800 text-2xl leading-none"
-            >
-              &times;
-            </button>
+            {/* Glass card */}
+            <div className="relative rounded-3xl overflow-hidden" style={{ background:"rgba(255,255,255,0.08)",backdropFilter:"blur(40px)",WebkitBackdropFilter:"blur(40px)",border:"1px solid rgba(255,255,255,0.18)",boxShadow:"0 32px 64px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.2)",zIndex:1 }}>
 
-            {/* Header */}
-            <div className="px-8 pt-8 pb-0 text-center">
-              <div className="w-12 h-12 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-3 text-neutral-900">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
-              </div>
-              <h3 className="font-display text-2xl font-bold text-neutral-900 mb-1">
-                {authTab === "login" ? "Sign In with College ID" : "Create Student Account"}
-              </h3>
-              <p className="text-xs text-neutral-500 mb-5">
-                Access restricted to verified university domain accounts.
-              </p>
-            </div>
+              {/* Close */}
+              <button onClick={() => { setIsLoginOpen(false); setAuthTab("login"); }} aria-label="Close" className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition text-xl leading-none">×</button>
 
-            {/* Tab switcher */}
-            <div className="px-8 mb-5">
-              <div className="flex bg-neutral-100 rounded-xl p-1 gap-1">
-                <button
-                  onClick={() => setAuthTab("login")}
-                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${authTab === "login" ? "bg-white shadow text-neutral-900" : "text-neutral-500 hover:text-neutral-700"}`}
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => setAuthTab("register")}
-                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${authTab === "register" ? "bg-white shadow text-neutral-900" : "text-neutral-500 hover:text-neutral-700"}`}
-                >
-                  Register
-                </button>
-              </div>
-            </div>
-
-            {/* ── LOGIN TAB ── */}
-            {authTab === "login" && (
-              <div className="px-8 pb-8">
-                {/* 1-Click Demo Login */}
-                <button
-                  onClick={() => handleLogin("2024cs1089@campus.edu")}
-                  className="w-full mb-4 py-3 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-                >
-                  <span>⚡ Demo Login — 2024CS1089@campus.edu</span>
-                </button>
-
-                <div className="relative flex py-2 items-center mb-4">
-                  <div className="flex-grow border-t border-neutral-200" />
-                  <span className="flex-shrink mx-3 text-[11px] text-neutral-400 font-mono uppercase">Or use credentials</span>
-                  <div className="flex-grow border-t border-neutral-200" />
+              {/* Header */}
+              <div className="pt-10 pb-0 px-8 text-center">
+                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",boxShadow:"0 4px 20px rgba(0,0,0,0.3)" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
                 </div>
-
-                <form onSubmit={(e) => { e.preventDefault(); handleLogin(loginEmail); }} className="space-y-4">
-                  {/* Email */}
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">College Email</label>
-                    <input
-                      type="email" required
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="rollnumber@campus.edu"
-                      className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
-                  {/* Password */}
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">Password</label>
-                    <input
-                      type="password" required
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full py-3.5 bg-neutral-950 hover:bg-neutral-800 text-white font-bold rounded-xl text-sm transition shadow-lg mt-1 cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <span>Authenticate &amp; Enter Portal</span>
-                    <span>→</span>
-                  </button>
-                </form>
-
-                <p className="text-center text-xs text-neutral-400 mt-4">
-                  New student?{" "}
-                  <button onClick={() => setAuthTab("register")} className="text-neutral-900 font-semibold hover:underline">
-                    Create an account
-                  </button>
+                <h3 className="text-2xl font-bold text-white mb-1 tracking-tight">
+                  {authTab === "login" ? "Welcome Back" : "Join CampusCart"}
+                </h3>
+                <p className="text-sm text-white/50 mb-6">
+                  {authTab === "login" ? "Sign in with your college credentials" : "Create your student marketplace account"}
                 </p>
               </div>
-            )}
 
-            {/* ── REGISTER TAB ── */}
-            {authTab === "register" && (
-              <div className="px-8 pb-8 max-h-[70vh] overflow-y-auto">
-                <form onSubmit={handleRegister} className="space-y-4">
-
-                  {/* Full Name */}
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
-                      Full Name <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={regName}
-                      onChange={(e) => setRegName(e.target.value)}
-                      placeholder="e.g. Aarav Patel"
-                      className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
-
-                  {/* Roll Number */}
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
-                      Roll Number <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={regRoll}
-                      onChange={(e) => setRegRoll(e.target.value)}
-                      placeholder="e.g. 2024CS1089"
-                      className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
-
-                  {/* College Email */}
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
-                      College Email <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="email" required
-                      value={regEmail}
-                      onChange={(e) => {
-                        setRegEmail(e.target.value);
-                        // Auto-fill roll from email prefix
-                        const prefix = e.target.value.split("@")[0];
-                        if (prefix && !regRoll) setRegRoll(prefix.toUpperCase());
-                      }}
-                      placeholder="rollnumber@campus.edu"
-                      className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                    <p className="text-[11px] text-neutral-400 mt-1">Must end with @campus.edu</p>
-                  </div>
-
-                  {/* Department */}
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
-                      Department <span className="text-red-400">*</span>
-                    </label>
-                    <select
-                      required
-                      value={regDepartment}
-                      onChange={(e) => setRegDepartment(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                    >
-                      <option value="">Select department…</option>
-                      <option>Computer Science &amp; Engineering</option>
-                      <option>Electrical Engineering</option>
-                      <option>Mechanical Engineering</option>
-                      <option>Civil Engineering</option>
-                      <option>Electronics &amp; Telecommunication</option>
-                      <option>Information Technology</option>
-                      <option>Chemical Engineering</option>
-                      <option>Mathematics</option>
-                      <option>Physics</option>
-                      <option>Architecture</option>
-                      <option>Other</option>
-                    </select>
-                  </div>
-
-                  {/* Campus */}
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
-                      Campus
-                    </label>
-                    <input
-                      type="text"
-                      value={regCampus}
-                      onChange={(e) => setRegCampus(e.target.value)}
-                      placeholder="e.g. Jadavpur University"
-                      className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
-
-                  {/* Password */}
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
-                      Password <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="password" required minLength={6}
-                      value={regPassword}
-                      onChange={(e) => setRegPassword(e.target.value)}
-                      placeholder="Min. 6 characters"
-                      className="w-full px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                  </div>
-
-                  {/* Confirm Password */}
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-1.5">
-                      Confirm Password <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="password" required
-                      value={regConfirmPassword}
-                      onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      placeholder="Re-enter password"
-                      className={`w-full px-4 py-3 rounded-xl bg-neutral-50 border text-sm focus:outline-none focus:ring-2 focus:ring-black ${
-                        regConfirmPassword && regPassword !== regConfirmPassword
-                          ? "border-red-300 focus:ring-red-400"
-                          : "border-neutral-200"
-                      }`}
-                    />
-                    {regConfirmPassword && regPassword !== regConfirmPassword && (
-                      <p className="text-[11px] text-red-500 mt-1">Passwords do not match</p>
-                    )}
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={regLoading}
-                    className="w-full py-3.5 bg-neutral-950 hover:bg-neutral-800 disabled:opacity-60 text-white font-bold rounded-xl text-sm transition shadow-lg mt-1 cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    {regLoading ? (
-                      <span className="flex items-center gap-2"><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Creating Account…</span>
-                    ) : (
-                      <><span>Create Account &amp; Enter Portal</span><span>→</span></>
-                    )}
-                  </button>
-                </form>
-
-                <p className="text-center text-xs text-neutral-400 mt-4">
-                  Already have an account?{" "}
-                  <button onClick={() => setAuthTab("login")} className="text-neutral-900 font-semibold hover:underline">
-                    Sign in
-                  </button>
-                </p>
+              {/* Tabs */}
+              <div className="px-8 mb-6">
+                <div className="flex p-1 rounded-2xl gap-1" style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)" }}>
+                  {["login","register"].map((tab) => (
+                    <button key={tab} onClick={() => setAuthTab(tab)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+                      style={authTab === tab
+                        ? { background:"rgba(255,255,255,0.15)",color:"#fff",boxShadow:"0 2px 12px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.15)" }
+                        : { color:"rgba(255,255,255,0.45)",border:"1px solid transparent" }}>
+                      {tab === "login" ? "Sign In" : "Register"}
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
 
+              {/* ── LOGIN ── */}
+              {authTab === "login" && (
+                <div className="px-8 pb-8">
+                  <form onSubmit={(e) => { e.preventDefault(); handleLogin(loginEmail); }} className="space-y-4">
+                    {[
+                      { label:"College Email", type:"email", val:loginEmail, set:setLoginEmail, ph:"rollnumber@campus.edu" },
+                      { label:"Password", type:"password", val:loginPassword, set:setLoginPassword, ph:"••••••••" },
+                    ].map(({ label, type, val, set, ph }) => (
+                      <div key={label}>
+                        <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest mb-2">{label}</label>
+                        <input type={type} required value={val} onChange={(e) => set(e.target.value)} placeholder={ph}
+                          className="w-full px-4 py-3.5 rounded-2xl text-sm text-white placeholder-white/30 focus:outline-none transition"
+                          style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.14)",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.06)" }}
+                          onFocus={(e) => { e.target.style.border="1px solid rgba(255,255,255,0.35)"; e.target.style.background="rgba(255,255,255,0.12)"; }}
+                          onBlur={(e) => { e.target.style.border="1px solid rgba(255,255,255,0.14)"; e.target.style.background="rgba(255,255,255,0.08)"; }}
+                        />
+                      </div>
+                    ))}
+                    <button type="submit" className="w-full py-3.5 rounded-2xl text-sm font-bold text-white transition-all duration-200 mt-2 cursor-pointer"
+                      style={{ background:"linear-gradient(135deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.1) 100%)",border:"1px solid rgba(255,255,255,0.25)",boxShadow:"0 4px 24px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.25)" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background="linear-gradient(135deg,rgba(255,255,255,0.3) 0%,rgba(255,255,255,0.16) 100%)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background="linear-gradient(135deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.1) 100%)"; }}>
+                      Sign In →
+                    </button>
+                  </form>
+                  <p className="text-center text-xs text-white/35 mt-5">
+                    New here?{" "}<button onClick={() => setAuthTab("register")} className="text-white/75 font-semibold hover:text-white transition">Create an account</button>
+                  </p>
+                </div>
+              )}
+
+              {/* ── REGISTER ── */}
+              {authTab === "register" && (
+                <div className="px-8 pb-8 max-h-[62vh] overflow-y-auto" style={{ scrollbarWidth:"thin",scrollbarColor:"rgba(255,255,255,0.15) transparent" }}>
+                  <form onSubmit={handleRegister} className="space-y-4">
+
+                    {/* Simple text/email fields */}
+                    {[
+                      { label:"Full Name",    req:true,  type:"text",     val:regName,     set:setRegName,     ph:"e.g. Aarav Patel" },
+                      { label:"Roll Number",  req:true,  type:"text",     val:regRoll,     set:setRegRoll,     ph:"e.g. 2024CS1089" },
+                    ].map(({ label, req, type, val, set, ph }) => (
+                      <div key={label}>
+                        <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest mb-2">{label} {req && <span className="text-red-400">*</span>}</label>
+                        <input type={type} required={req} value={val} onChange={(e) => set(e.target.value)} placeholder={ph}
+                          className="w-full px-4 py-3.5 rounded-2xl text-sm text-white placeholder-white/30 focus:outline-none transition"
+                          style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.14)",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.06)" }}
+                          onFocus={(e) => { e.target.style.border="1px solid rgba(255,255,255,0.35)"; e.target.style.background="rgba(255,255,255,0.12)"; }}
+                          onBlur={(e) => { e.target.style.border="1px solid rgba(255,255,255,0.14)"; e.target.style.background="rgba(255,255,255,0.08)"; }}
+                        />
+                      </div>
+                    ))}
+
+                    {/* College Email with auto-fill */}
+                    <div>
+                      <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest mb-2">College Email <span className="text-red-400">*</span></label>
+                      <input type="email" required value={regEmail}
+                        onChange={(e) => { setRegEmail(e.target.value); const p=e.target.value.split("@")[0]; if(p && !regRoll) setRegRoll(p.toUpperCase()); }}
+                        placeholder="rollnumber@campus.edu"
+                        className="w-full px-4 py-3.5 rounded-2xl text-sm text-white placeholder-white/30 focus:outline-none transition"
+                        style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.14)",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.06)" }}
+                        onFocus={(e) => { e.target.style.border="1px solid rgba(255,255,255,0.35)"; e.target.style.background="rgba(255,255,255,0.12)"; }}
+                        onBlur={(e) => { e.target.style.border="1px solid rgba(255,255,255,0.14)"; e.target.style.background="rgba(255,255,255,0.08)"; }}
+                      />
+                      <p className="text-[11px] text-white/35 mt-1.5 ml-1">Must end with @campus.edu</p>
+                    </div>
+
+                    {/* Department dropdown */}
+                    <div>
+                      <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest mb-2">Department <span className="text-red-400">*</span></label>
+                      <select required value={regDepartment} onChange={(e) => setRegDepartment(e.target.value)}
+                        className="w-full px-4 py-3.5 rounded-2xl text-sm focus:outline-none transition appearance-none"
+                        style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.14)",color:regDepartment?"#fff":"rgba(255,255,255,0.3)" }}
+                        onFocus={(e) => { e.target.style.border="1px solid rgba(255,255,255,0.35)"; e.target.style.background="rgba(18,18,30,0.97)"; }}
+                        onBlur={(e) => { e.target.style.border="1px solid rgba(255,255,255,0.14)"; e.target.style.background="rgba(255,255,255,0.08)"; }}>
+                        <option value="" style={{ background:"#12121e" }}>Select department…</option>
+                        {["Computer Science & Engineering","Electrical Engineering","Mechanical Engineering","Civil Engineering","Electronics & Telecommunication","Information Technology","Chemical Engineering","Mathematics","Physics","Architecture","Other"].map(d=>(
+                          <option key={d} value={d} style={{ background:"#12121e" }}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Campus */}
+                    <div>
+                      <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest mb-2">Campus</label>
+                      <input type="text" value={regCampus} onChange={(e) => setRegCampus(e.target.value)} placeholder="e.g. Jadavpur University"
+                        className="w-full px-4 py-3.5 rounded-2xl text-sm text-white placeholder-white/30 focus:outline-none transition"
+                        style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.14)",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.06)" }}
+                        onFocus={(e) => { e.target.style.border="1px solid rgba(255,255,255,0.35)"; e.target.style.background="rgba(255,255,255,0.12)"; }}
+                        onBlur={(e) => { e.target.style.border="1px solid rgba(255,255,255,0.14)"; e.target.style.background="rgba(255,255,255,0.08)"; }}
+                      />
+                    </div>
+
+                    {/* Password */}
+                    <div>
+                      <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest mb-2">Password <span className="text-red-400">*</span></label>
+                      <input type="password" required minLength={6} value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="Min. 6 characters"
+                        className="w-full px-4 py-3.5 rounded-2xl text-sm text-white placeholder-white/30 focus:outline-none transition"
+                        style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.14)",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.06)" }}
+                        onFocus={(e) => { e.target.style.border="1px solid rgba(255,255,255,0.35)"; e.target.style.background="rgba(255,255,255,0.12)"; }}
+                        onBlur={(e) => { e.target.style.border="1px solid rgba(255,255,255,0.14)"; e.target.style.background="rgba(255,255,255,0.08)"; }}
+                      />
+                    </div>
+
+                    {/* Confirm Password */}
+                    <div>
+                      <label className="block text-xs font-semibold text-white/60 uppercase tracking-widest mb-2">Confirm Password <span className="text-red-400">*</span></label>
+                      <input type="password" required value={regConfirmPassword} onChange={(e) => setRegConfirmPassword(e.target.value)} placeholder="Re-enter password"
+                        className="w-full px-4 py-3.5 rounded-2xl text-sm text-white placeholder-white/30 focus:outline-none transition"
+                        style={{ background:"rgba(255,255,255,0.08)",border:regConfirmPassword&&regPassword!==regConfirmPassword?"1px solid rgba(248,113,113,0.6)":"1px solid rgba(255,255,255,0.14)",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.06)" }}
+                        onFocus={(e) => { e.target.style.background="rgba(255,255,255,0.12)"; }}
+                        onBlur={(e) => { e.target.style.background="rgba(255,255,255,0.08)"; }}
+                      />
+                      {regConfirmPassword && regPassword !== regConfirmPassword && (
+                        <p className="text-[11px] text-red-400 mt-1.5 ml-1">Passwords do not match</p>
+                      )}
+                    </div>
+
+                    <button type="submit" disabled={regLoading}
+                      className="w-full py-3.5 rounded-2xl text-sm font-bold text-white transition-all duration-200 mt-2 cursor-pointer disabled:opacity-50"
+                      style={{ background:"linear-gradient(135deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.1) 100%)",border:"1px solid rgba(255,255,255,0.25)",boxShadow:"0 4px 24px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.25)" }}>
+                      {regLoading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                          Creating Account…
+                        </span>
+                      ) : "Create Account →"}
+                    </button>
+                  </form>
+                  <p className="text-center text-xs text-white/35 mt-5">
+                    Already registered?{" "}<button onClick={() => setAuthTab("login")} className="text-white/75 font-semibold hover:text-white transition">Sign in</button>
+                  </p>
+                </div>
+              )}
+
+            </div>
           </div>
         </div>
       )}
