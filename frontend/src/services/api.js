@@ -171,6 +171,29 @@ export async function logoutUser() {
   }
 }
 
+export async function registerUser({ email, password, name, roll, department, campus }) {
+  try {
+    const data = await request("/api/v1/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password, name, roll, department, campus }),
+    });
+
+    if (data?.token) {
+      setStoredToken(data.token);
+    }
+
+    const user = data?.user || data;
+    const normalizedUser = {
+      ...user,
+      id: user?.id || user?._id || user?.userId || user?.sub || null,
+    };
+
+    return { success: true, ...data, user: normalizedUser };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 /* =========================================================================
    PRODUCTS
    ========================================================================= */
