@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-// Web Audio API synthesizer for friendly robot vocalization (no external mp3 files needed)
+// Web Audio API synthesizer for friendly robot vocalization
 const playRobotSound = (type = "chirp", muted = false) => {
   if (muted || typeof window === "undefined") return;
   try {
@@ -16,20 +16,20 @@ const playRobotSound = (type = "chirp", muted = false) => {
       osc.frequency.setValueAtTime(580, now);
       osc.frequency.exponentialRampToValueAtTime(920, now + 0.08);
       osc.frequency.exponentialRampToValueAtTime(1180, now + 0.16);
-      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.setValueAtTime(0.06, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(now);
       osc.stop(now + 0.18);
-    } else if (type === "happy") {
-      [600, 800, 1050].forEach((freq, idx) => {
+    } else if (type === "happy" || type === "love") {
+      [620, 840, 1120].forEach((freq, idx) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = "sine";
         const start = now + idx * 0.07;
         osc.frequency.setValueAtTime(freq, start);
-        gain.gain.setValueAtTime(0.07, start);
+        gain.gain.setValueAtTime(0.05, start);
         gain.gain.exponentialRampToValueAtTime(0.001, start + 0.1);
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -40,22 +40,22 @@ const playRobotSound = (type = "chirp", muted = false) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "triangle";
-      osc.frequency.setValueAtTime(420, now);
-      osc.frequency.exponentialRampToValueAtTime(320, now + 0.09);
-      gain.gain.setValueAtTime(0.04, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.exponentialRampToValueAtTime(300, now + 0.08);
+      gain.gain.setValueAtTime(0.03, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.09);
+      osc.stop(now + 0.08);
     }
   } catch (e) {
-    // AudioContext might be blocked until user gesture, ignore silently
+    // Ignore audio permission restrictions before first user gesture
   }
 };
 
 export default function CampusBot({ currentUser, onNavigate, allProducts = [] }) {
-  // Coordinates for dragging
+  // Screen Coordinates for dragging
   const [position, setPosition] = useState(() => {
     try {
       const saved = localStorage.getItem("campuscart_bot_pos");
@@ -66,7 +66,6 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
         }
       }
     } catch {}
-    // Default safe bottom-right position
     const initialX = Math.max(20, (typeof window !== "undefined" ? window.innerWidth : 1200) - 130);
     const initialY = Math.max(100, (typeof window !== "undefined" ? window.innerHeight : 800) - 220);
     return { x: initialX, y: initialY };
@@ -77,8 +76,8 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
   const [hasDragged, setHasDragged] = useState(false);
   const [dragTilt, setDragTilt] = useState(0);
 
-  // Bot states & emotional expressions
-  // Emotions: "normal" | "happy" | "love" | "curious" | "wink" | "sleepy" | "excited"
+  // AUTOMATIC EMOTIONAL STATES:
+  // "normal" | "curious" | "happy" | "love" | "excited" | "sleepy" | "wink"
   const [emotion, setEmotion] = useState("normal");
   const [isHovered, setIsHovered] = useState(false);
   const [isBlinking, setIsBlinking] = useState(false);
@@ -87,6 +86,12 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
   const [bubbleText, setBubbleText] = useState("Hi student! Drag me or tap to talk! 🤖");
   const [showQuickBubble, setShowQuickBubble] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Velocity tracking during drag
+  const lastPosRef = useRef({ x: position.x, y: position.y, time: Date.now() });
+  const hoverDurationTimerRef = useRef(null);
+  const idleTimerRef = useRef(null);
+  const winkTimeoutRef = useRef(null);
 
   // Chat conversation state
   const [chatMessages, setChatMessages] = useState([
@@ -104,14 +109,14 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
   const chatScrollRef = useRef(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
 
-  // Auto-scroll chat window
+  // Auto-scroll chat
   useEffect(() => {
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
   }, [chatMessages, isThinking, isChatOpen]);
 
-  // Handle screen resize safely
+  // Window resize clamp
   useEffect(() => {
     const handleResize = () => {
       setPosition((prev) => {
@@ -126,43 +131,60 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Periodic natural blinking
+  // Periodic natural blinking when idle
   useEffect(() => {
     const blinkInterval = setInterval(() => {
-      if (!isHovered && !isDragging) {
+      if (!isHovered && !isDragging && emotion !== "sleepy") {
         setIsBlinking(true);
-        setTimeout(() => setIsBlinking(false), 220);
+        setTimeout(() => setIsBlinking(false), 200);
       }
-    }, 4200 + Math.random() * 2500);
+    }, 4500 + Math.random() * 2500);
 
     return () => clearInterval(blinkInterval);
-  }, [isHovered, isDragging]);
+  }, [isHovered, isDragging, emotion]);
 
-  // Hide quick bubble after 8 seconds of idle, or refresh on hover
+  // Fade quick bubble after 8s
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!isChatOpen) setShowQuickBubble(false);
-    }, 9000);
+    }, 8500);
     return () => clearTimeout(timer);
   }, [isChatOpen]);
 
-  // Track cursor position to move digital eyes smoothly
+  // AUTOMATIC HOVER & CURSOR PROXIMITY EMOTIONS
   useEffect(() => {
+    const resetIdleTimer = () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      // If was sleepy, wake up immediately!
+      if (emotion === "sleepy") {
+        setEmotion("happy");
+        setTimeout(() => setEmotion("normal"), 1200);
+      }
+      // Enter sleepy mode after 16s of total inactivity
+      idleTimerRef.current = setTimeout(() => {
+        if (!isHovered && !isDragging && !isChatOpen) {
+          setEmotion("sleepy");
+        }
+      }, 16000);
+    };
+
     const handleMouseMove = (e) => {
+      resetIdleTimer();
       if (!botRef.current || isDragging) return;
+
       const rect = botRef.current.getBoundingClientRect();
       const botCenterX = rect.left + rect.width / 2;
       const botCenterY = rect.top + rect.height / 2;
 
       const deltaX = e.clientX - botCenterX;
       const deltaY = e.clientY - botCenterY;
-      const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      const dist = Math.hypot(deltaX, deltaY);
 
+      // Pupil movement following cursor
       if (dist < 800) {
-        // Max pupil offset is ~7px
-        const maxOffset = 6;
+        const maxOffset = 6.5;
         const angle = Math.atan2(deltaY, deltaX);
-        const factor = Math.min(dist / 300, 1);
+        const factor = Math.min(dist / 280, 1);
         setPupilOffset({
           x: Math.cos(angle) * maxOffset * factor,
           y: Math.sin(angle) * maxOffset * factor,
@@ -170,17 +192,31 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
       } else {
         setPupilOffset({ x: 0, y: 0 });
       }
+
+      // AUTOMATIC EMOTION TRANSITION BASED ON DISTANCE & HOVERING MOVEMENT
+      if (!isHovered && emotion !== "love" && emotion !== "wink") {
+        if (dist < 140) {
+          // Close proximity: curious attention
+          setEmotion("curious");
+        } else if (dist < 320 && emotion === "curious") {
+          // Returning to normal after looking closely
+          setEmotion("normal");
+        }
+      }
     };
 
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [isDragging]);
+    resetIdleTimer();
 
-  // Pointer drag logic (works uniformly for mouse and touch)
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, [isDragging, isHovered, emotion, isChatOpen]);
+
+  // Pointer drag logic with VELOCITY-BASED AUTOMATIC EMOTIONS
   const handlePointerDown = (e) => {
-    // Only drag with primary mouse button
     if (e.button !== 0 && e.pointerType === "mouse") return;
-    // Don't drag if clicking inside open chat window
     if (e.target.closest(".campusbot-chat-window")) return;
 
     const botElem = botRef.current;
@@ -190,16 +226,28 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
     setIsDragging(true);
     setHasDragged(false);
     dragStartRef.current = { x: e.clientX, y: e.clientY };
+    lastPosRef.current = { x: e.clientX, y: e.clientY, time: Date.now() };
+
     setDragOffset({
       x: e.clientX - position.x,
       y: e.clientY - position.y,
     });
+
+    // Start with flight emotion
     setEmotion("excited");
     playRobotSound("drag", !soundEnabled);
   };
 
   const handlePointerMove = (e) => {
     if (!isDragging) return;
+
+    const now = Date.now();
+    const dt = Math.max(1, now - lastPosRef.current.time);
+    const dx = e.clientX - lastPosRef.current.x;
+    const dy = e.clientY - lastPosRef.current.y;
+    const speed = Math.hypot(dx, dy) / dt; // pixels per ms
+
+    lastPosRef.current = { x: e.clientX, y: e.clientY, time: now };
 
     const moveDist = Math.hypot(
       e.clientX - dragStartRef.current.x,
@@ -216,10 +264,24 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
     const newX = Math.min(Math.max(10, e.clientX - dragOffset.x), maxX);
     const newY = Math.min(Math.max(10, e.clientY - dragOffset.y), maxY);
 
-    // Calculate slight tilt angle based on horizontal drag delta
-    const deltaX = e.clientX - dragStartRef.current.x;
-    const tilt = Math.max(-18, Math.min(18, deltaX * 0.4));
+    // Natural inertia tilt based on drag direction
+    const tilt = Math.max(-20, Math.min(20, dx * 1.2));
     setDragTilt(tilt);
+
+    // AUTOMATIC FLIGHT EMOTION ACCORDING TO MOVEMENT VELOCITY:
+    if (speed > 1.2) {
+      // High speed swoosh!
+      setEmotion("excited");
+      // Direct eyes in movement direction
+      const angle = Math.atan2(dy, dx);
+      setPupilOffset({
+        x: Math.cos(angle) * 7,
+        y: Math.sin(angle) * 7,
+      });
+    } else {
+      // Gentle cruise
+      setEmotion("curious");
+    }
 
     setPosition({ x: newX, y: newY });
   };
@@ -238,18 +300,53 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
       localStorage.setItem("campuscart_bot_pos", JSON.stringify(position));
     } catch {}
 
-    // If it was just a click (not dragged), toggle chat!
+    // If it was just a tap/click -> toggle chat
     if (!hasDragged) {
       setIsChatOpen((prev) => !prev);
       playRobotSound("happy", !soundEnabled);
       setEmotion("happy");
-      setTimeout(() => setEmotion("normal"), 1500);
+      setTimeout(() => setEmotion("normal"), 1400);
     } else {
-      setEmotion(isHovered ? "happy" : "normal");
+      // Released after movement: happy arrival bounce
+      setEmotion("happy");
+      playRobotSound("chirp", !soundEnabled);
+      setTimeout(() => {
+        setEmotion(isHovered ? "happy" : "normal");
+      }, 1600);
     }
   };
 
-  // Dock bot back to bottom-right corner
+  // AUTOMATIC HOVER REACTIONS
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    setEmotion("happy");
+    playRobotSound("chirp", !soundEnabled);
+
+    // If user lingers over the bot for > 1.3s -> automatic love/heart eyes!
+    if (hoverDurationTimerRef.current) clearTimeout(hoverDurationTimerRef.current);
+    hoverDurationTimerRef.current = setTimeout(() => {
+      setEmotion("love");
+      playRobotSound("happy", !soundEnabled);
+    }, 1300);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (hoverDurationTimerRef.current) clearTimeout(hoverDurationTimerRef.current);
+
+    // Cute automatic wink upon cursor departure
+    if (!isDragging && emotion !== "sleepy") {
+      setEmotion("wink");
+      if (winkTimeoutRef.current) clearTimeout(winkTimeoutRef.current);
+      winkTimeoutRef.current = setTimeout(() => {
+        setEmotion("normal");
+      }, 900);
+    } else {
+      setEmotion("normal");
+    }
+  };
+
+  // Dock bot back to corner
   const handleDockCorner = () => {
     const docked = {
       x: Math.max(20, window.innerWidth - 130),
@@ -259,10 +356,12 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
     try {
       localStorage.setItem("campuscart_bot_pos", JSON.stringify(docked));
     } catch {}
+    setEmotion("happy");
     playRobotSound("chirp", !soundEnabled);
+    setTimeout(() => setEmotion("normal"), 1200);
   };
 
-  // Handle user sending message in the chat
+  // Send message in chat
   const handleSendMessage = async (customPrompt) => {
     const query = (customPrompt || userInput).trim();
     if (!query) return;
@@ -280,16 +379,16 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
     setEmotion("curious");
     playRobotSound("chirp", !soundEnabled);
 
-    // Simulate AI smart campus assistant reasoning (ready for future backend LLM hook)
+    // Simulated AI response
     setTimeout(() => {
       let botReply = "";
       const lower = query.toLowerCase();
 
       if (lower.includes("book") || lower.includes("notes") || lower.includes("study")) {
-        botReply = "📚 I found textbook listings in the marketplace! You can check Engineering Mathematics, DSA by Cormen, or upload your own notes in the Sell tab.";
+        botReply = "📚 I found textbook listings in the marketplace! Check Engineering Mathematics, DSA by Cormen, or upload your own notes in the Sell tab.";
         setEmotion("happy");
       } else if (lower.includes("price") || lower.includes("deal") || lower.includes("cheap")) {
-        botReply = "🏷️ Tip: Verified student sellers on CampusCart usually offer 40%–70% off retail prices, plus peer pickup with zero delivery fees!";
+        botReply = "🏷️ Verified student sellers on CampusCart offer 40%–70% off retail prices, plus peer pickup with zero delivery fees!";
         setEmotion("excited");
       } else if (lower.includes("safe") || lower.includes("trust") || lower.includes("qr")) {
         botReply = "🛡️ CampusCart uses the QR Handshake Protocol! Only release your verification code when you physically meet and inspect the product.";
@@ -298,10 +397,10 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
         botReply = `Hey there! 🤖 Hope classes are going great. Need help finding campus equipment, hostel gear, or calculators?`;
         setEmotion("happy");
       } else if (lower.includes("love") || lower.includes("cute") || lower.includes("bot")) {
-        botReply = "Aww, thank you! Beep boop! 💖 I'm happy to assist anytime.";
+        botReply = "Aww, thank you! Beep boop! 💖 Always glad to help.";
         setEmotion("love");
       } else {
-        botReply = `🤖 I'm indexing the campus catalog for "${query}". You can browse live items on the Marketplace or filter by your college hub! (Backend AI integration ready)`;
+        botReply = `🤖 I'm indexing the campus catalog for "${query}". You can browse live items on the Marketplace or filter by your college hub!`;
         setEmotion("normal");
       }
 
@@ -319,50 +418,50 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
     }, 700);
   };
 
-  // Determine current active eye render based on emotion & blinking
+  // DYNAMIC AUTOMATIC EYE GRAPHICS
   const renderEyes = () => {
+    // 1. Blinking or Sleepy (droopy/flat glowing amber lines)
     if (isBlinking || emotion === "sleepy") {
-      // Blinking or sleeping: flat glowing amber bars
       return (
         <>
-          <path d="M 32 50 Q 42 50 52 50" stroke="#FFB020" strokeWidth="4.5" strokeLinecap="round" filter="url(#glow)" />
-          <path d="M 68 50 Q 78 50 88 50" stroke="#FFB020" strokeWidth="4.5" strokeLinecap="round" filter="url(#glow)" />
+          <path d="M 32 51 Q 42 51 52 51" stroke="#FFB020" strokeWidth="4.5" strokeLinecap="round" filter="url(#glow)" />
+          <path d="M 68 51 Q 78 51 88 51" stroke="#FFB020" strokeWidth="4.5" strokeLinecap="round" filter="url(#glow)" />
         </>
       );
     }
 
+    // 2. Happy (Joyful upward curved crescents ^ _ ^ on hover/arrival)
     if (emotion === "happy") {
-      // Smiling upside-down arches (◠ ‿ ◠)
       return (
         <>
-          <path d="M 34 53 Q 42 42 50 53" fill="none" stroke="#FFB400" strokeWidth="5.5" strokeLinecap="round" filter="url(#glow)" />
-          <path d="M 70 53 Q 78 42 86 53" fill="none" stroke="#FFB400" strokeWidth="5.5" strokeLinecap="round" filter="url(#glow)" />
+          <path d="M 34 54 Q 42 42 50 54" fill="none" stroke="#FFB400" strokeWidth="5.5" strokeLinecap="round" filter="url(#glow)" />
+          <path d="M 70 54 Q 78 42 86 54" fill="none" stroke="#FFB400" strokeWidth="5.5" strokeLinecap="round" filter="url(#glow)" />
         </>
       );
     }
 
+    // 3. Love / Sustained Hovering (Glowing warm heart eyes ♥ ♥)
     if (emotion === "love") {
-      // Glowing Warm Heart Eyes ♥ ♥
       return (
         <>
           <path
             d="M 42 43 C 39 37 32 37 32 44 C 32 50 42 57 42 57 C 42 57 52 50 52 44 C 52 37 45 37 42 43 Z"
             fill="#FF8038"
             filter="url(#glow)"
-            transform="scale(0.8) translate(10, 10)"
+            transform="scale(0.85) translate(8, 7)"
           />
           <path
             d="M 78 43 C 75 37 68 37 68 44 C 68 50 78 57 78 57 C 78 57 88 50 88 44 C 88 37 81 37 78 43 Z"
             fill="#FF8038"
             filter="url(#glow)"
-            transform="scale(0.8) translate(20, 10)"
+            transform="scale(0.85) translate(18, 7)"
           />
         </>
       );
     }
 
+    // 4. Playful Wink on departure
     if (emotion === "wink") {
-      // One open eye, one winking arch
       return (
         <>
           <rect
@@ -374,14 +473,14 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
             fill="#FFAA00"
             filter="url(#glow)"
           />
-          <path d="M 70 52 Q 78 44 86 52" fill="none" stroke="#FFAA00" strokeWidth="5" strokeLinecap="round" filter="url(#glow)" />
+          <path d="M 70 53 Q 78 45 86 53" fill="none" stroke="#FFAA00" strokeWidth="5" strokeLinecap="round" filter="url(#glow)" />
         </>
       );
     }
 
-    // Default & Curious: Glowing amber rectangular/rounded digital pupils that follow cursor
-    const eyeWidth = emotion === "excited" ? 14 : 12;
-    const eyeHeight = emotion === "excited" ? 16 : 14;
+    // 5. Normal & Curious/Excited: Amber digital pupils tracking movement dynamically
+    const eyeWidth = emotion === "excited" ? 15 : 12;
+    const eyeHeight = emotion === "excited" ? 17 : 14;
 
     return (
       <>
@@ -396,7 +495,6 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
             fill="url(#amberPupilGrad)"
             filter="url(#glow)"
           />
-          {/* Pupil digital scanline/inner highlight */}
           <rect
             x={44 - eyeWidth / 2}
             y={52 - eyeHeight / 2}
@@ -433,7 +531,7 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
     );
   };
 
-  // Determine chat window positioning so it stays on-screen
+  // Determine chat placement
   const chatPlacementClass =
     position.x > (typeof window !== "undefined" ? window.innerWidth : 1200) / 2
       ? "right-0 origin-bottom-right"
@@ -450,15 +548,8 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onMouseEnter={() => {
-        setIsHovered(true);
-        if (emotion === "normal") setEmotion("happy");
-        playRobotSound("chirp", !soundEnabled);
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (!isChatOpen) setEmotion("normal");
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       style={{
         position: "fixed",
         left: `${position.x}px`,
@@ -484,20 +575,18 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
         </div>
       )}
 
-      {/* ── Realistic Robot Graphic (SVG matching user image) ── */}
+      {/* ── Realistic Robot Graphic matching user image ── */}
       <div className="relative w-24 h-28 flex flex-col items-center justify-center">
-        {/* Hovering Bob Animation Wrapper */}
+        {/* Floating Animation */}
         <div
-          className={`w-full h-full flex items-center justify-center transition-transform duration-300 ${
-            !isDragging ? "animate-pulse" : ""
-          }`}
+          className="w-full h-full flex items-center justify-center transition-transform duration-300"
           style={{
             animation: !isDragging ? "campusBotFloat 3.2s ease-in-out infinite" : "none",
           }}
         >
           <svg viewBox="0 0 120 120" className="w-24 h-24 drop-shadow-[0_12px_24px_rgba(0,0,0,0.35)] overflow-visible">
             <defs>
-              {/* Head Shell Gloss Gradient */}
+              {/* Head Shell Gloss */}
               <linearGradient id="headGloss" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#FFFFFF" />
                 <stop offset="45%" stopColor="#F5F7FA" />
@@ -505,7 +594,7 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
                 <stop offset="100%" stopColor="#CCD1D9" />
               </linearGradient>
 
-              {/* Antenna Chrome Gradient */}
+              {/* Antenna Chrome */}
               <linearGradient id="chromeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#8A939E" />
                 <stop offset="45%" stopColor="#FFFFFF" />
@@ -513,7 +602,7 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
                 <stop offset="100%" stopColor="#5B626C" />
               </linearGradient>
 
-              {/* Eye Socket Convex Glass Gradient */}
+              {/* Eye Socket Convex Glass */}
               <radialGradient id="socketGrad" cx="40%" cy="35%" r="65%">
                 <stop offset="0%" stopColor="#1E2229" />
                 <stop offset="70%" stopColor="#0B0D11" />
@@ -551,7 +640,7 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
               </radialGradient>
             </defs>
 
-            {/* ── Side Ears / Joint Discs ── */}
+            {/* ── Side Ears / Discs ── */}
             <ellipse cx="14" cy="54" rx="5.5" ry="11" fill="url(#earDiscGrad)" stroke="#111" strokeWidth="1" />
             <ellipse cx="14" cy="54" rx="2.5" ry="6" fill="#555B66" opacity="0.6" />
 
@@ -573,21 +662,18 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
             />
 
             {/* ── Antenna Base & Mast ── */}
-            {/* Metallic Dome Base on top of head */}
             <ellipse cx="60" cy="18" rx="7" ry="3.5" fill="url(#chromeGrad)" stroke="#4A5059" strokeWidth="0.8" />
-            {/* Slim Mast */}
             <line x1="60" y1="18" x2="60" y2="7" stroke="url(#chromeGrad)" strokeWidth="2.2" strokeLinecap="round" />
-            {/* Antenna Top Ball (Pulses slightly with status) */}
+            {/* Antenna Top Ball with Dynamic Reaction Glow */}
             <circle
               cx="60"
               cy="6"
               r="4"
-              fill={emotion === "love" ? "#FF4D6D" : emotion === "happy" ? "#00E5FF" : "#1A1D24"}
+              fill={emotion === "love" ? "#FF4D6D" : emotion === "happy" ? "#00E5FF" : emotion === "excited" ? "#FF9F0A" : "#1A1D24"}
               stroke="url(#chromeGrad)"
               strokeWidth="1.2"
-              filter={emotion !== "normal" ? "url(#glow)" : undefined}
+              filter={emotion !== "normal" && emotion !== "sleepy" ? "url(#glow)" : undefined}
             />
-            {/* Antenna Ball Specular Dot */}
             <circle cx="58.5" cy="4.5" r="1.2" fill="#FFFFFF" opacity="0.9" />
 
             {/* ── Main Spherical Head Shell ── */}
@@ -600,7 +686,7 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
               strokeWidth="0.8"
             />
 
-            {/* Glossy Upper Head Highlight / Reflection */}
+            {/* Glossy Upper Reflection */}
             <ellipse
               cx="58"
               cy="28"
@@ -609,11 +695,11 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
               fill="url(#headSpecular)"
             />
 
-            {/* ── Forehead Sensor Dot (as in image) ── */}
+            {/* ── Forehead Sensor Dot ── */}
             <circle cx="60" cy="38" r="3.2" fill="#14171C" />
             <circle cx="59" cy="37" r="1" fill="#FFFFFF" opacity="0.5" />
 
-            {/* ── Left Eye Socket (Large Black Glass Sphere) ── */}
+            {/* ── Left Eye Socket (Concave Gloss Black) ── */}
             <circle
               cx="42"
               cy="52"
@@ -622,7 +708,6 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
               stroke="#2B303A"
               strokeWidth="2.4"
             />
-            {/* Left Eye Rim Highlight */}
             <path
               d="M 28 46 A 15 15 0 0 1 54 44"
               fill="none"
@@ -632,7 +717,7 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
               opacity="0.35"
             />
 
-            {/* ── Right Eye Socket (Large Black Glass Sphere) ── */}
+            {/* ── Right Eye Socket (Concave Gloss Black) ── */}
             <circle
               cx="78"
               cy="52"
@@ -641,7 +726,6 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
               stroke="#2B303A"
               strokeWidth="2.4"
             />
-            {/* Right Eye Rim Highlight */}
             <path
               d="M 64 46 A 15 15 0 0 1 90 44"
               fill="none"
@@ -651,17 +735,17 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
               opacity="0.35"
             />
 
-            {/* ── Interactive Glowing Digital Pupils ── */}
+            {/* ── Dynamic Automatic Pupils ── */}
             {renderEyes()}
 
-            {/* ── Cute Cheeks (Blush when hovered/happy) ── */}
+            {/* ── Cute Cheeks (Automatic Blush on hover / love / happiness) ── */}
             <ellipse
               cx="28"
               cy="64"
               rx="5"
               ry="2.5"
               fill="#FF7E94"
-              opacity={isHovered || emotion === "love" || emotion === "happy" ? "0.6" : "0"}
+              opacity={isHovered || emotion === "love" || emotion === "happy" ? "0.65" : "0"}
               className="transition-opacity duration-300"
             />
             <ellipse
@@ -670,17 +754,19 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
               rx="5"
               ry="2.5"
               fill="#FF7E94"
-              opacity={isHovered || emotion === "love" || emotion === "happy" ? "0.6" : "0"}
+              opacity={isHovered || emotion === "love" || emotion === "happy" ? "0.65" : "0"}
               className="transition-opacity duration-300"
             />
 
-            {/* ── Subtle Curved Smile ── */}
+            {/* ── Subtle Curved Smile (Reacts automatically) ── */}
             <path
               d={
                 emotion === "happy" || emotion === "love"
                   ? "M 50 72 Q 60 81 70 72"
                   : emotion === "excited"
-                  ? "M 48 71 Q 60 83 72 71"
+                  ? "M 48 71 Q 60 84 72 71"
+                  : emotion === "sleepy"
+                  ? "M 53 74 Q 60 76 67 74"
                   : "M 52 73 Q 60 78 68 73"
               }
               fill="none"
@@ -692,7 +778,7 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
           </svg>
         </div>
 
-        {/* Floating Ambient Shadow Underneath */}
+        {/* Floating Ambient Shadow */}
         <div
           className="w-14 h-2.5 rounded-full bg-black/25 blur-[3px] transition-all duration-300 -mt-2"
           style={{
@@ -710,7 +796,7 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
       {isChatOpen && (
         <div
           onPointerDown={(e) => e.stopPropagation()}
-          className={`campusbot-chat-window absolute ${chatPlacementClass} ${chatVerticalClass} w-80 sm:w-96 rounded-3xl overflow-hidden shadow-2xl border border-white/25 text-left`}
+          className={`campusbot-chat-window absolute ${chatPlacementClass} ${chatVerticalClass} w-80 sm:w-96 rounded-3xl overflow-hidden shadow-2xl border border-white/20 text-left`}
           style={{
             background: "rgba(18, 20, 26, 0.88)",
             backdropFilter: "blur(32px)",
@@ -763,36 +849,6 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
               >
                 ✕
               </button>
-            </div>
-          </div>
-
-          {/* Quick Emotion Reaction Chips */}
-          <div className="px-4 py-2 bg-white/[0.02] border-b border-white/5 flex items-center justify-between text-xs text-white/60">
-            <span className="text-[10px] uppercase font-mono tracking-wider text-white/40">Mood:</span>
-            <div className="flex gap-1">
-              {[
-                { label: "😊", val: "happy" },
-                { label: "💖", val: "love" },
-                { label: "😉", val: "wink" },
-                { label: "⚡", val: "excited" },
-                { label: "😴", val: "sleepy" },
-              ].map((m) => (
-                <button
-                  key={m.val}
-                  type="button"
-                  onClick={() => {
-                    setEmotion(m.val);
-                    playRobotSound(m.val === "love" ? "happy" : "chirp", !soundEnabled);
-                  }}
-                  className={`px-2 py-0.5 rounded-lg text-xs transition ${
-                    emotion === m.val
-                      ? "bg-white/20 text-white border border-white/30"
-                      : "hover:bg-white/10 text-white/60"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
             </div>
           </div>
 
