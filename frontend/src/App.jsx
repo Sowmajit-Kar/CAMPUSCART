@@ -20,6 +20,7 @@ import WishlistView from "./components/WishListView.jsx";
 import OrderHistory from "./components/OrderHistory";
 import WestBengalMapModal from "./components/WestBengalMapModal";
 import SellerDashboard from "./components/SellerDashboard.jsx";
+import CampusBot from "./components/CampusBot.jsx";
 import {
   fetchProductsFromBackend,
   createProductOnBackend,
@@ -1426,6 +1427,13 @@ function App() {
           setSelectedCampusHub(college);
           showToast(`📍 Active Campus Hub set to: ${college.name}`);
         }}
+      />
+
+      {/* CUTE INTERACTIVE DRAGGABLE CAMPUS BOT */}
+      <CampusBot
+        currentUser={currentUser}
+        onNavigate={navigateTo}
+        allProducts={allProducts}
       />
 
       {/* TOAST POPUP */}
