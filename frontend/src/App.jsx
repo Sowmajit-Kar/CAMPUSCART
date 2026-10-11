@@ -21,6 +21,7 @@ import OrderHistory from "./components/OrderHistory";
 import WestBengalMapModal from "./components/WestBengalMapModal";
 import SellerDashboard from "./components/SellerDashboard.jsx";
 import CampusBot from "./components/CampusBot.jsx";
+import NotificationBell from "./components/NotificationBell.jsx";
 import {
   fetchProductsFromBackend,
   createProductOnBackend,
@@ -41,6 +42,9 @@ import {
   getStoredToken,
   setStoredToken,
   registerUser,
+  fetchNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
 } from "./services/api";
 
 function App() {
@@ -128,16 +132,19 @@ function App() {
     restoreSession();
   }, []);
 
+  const [notifications, setNotifications] = useState([]);
+
   useEffect(() => {
     if (!isLoggedIn) return;
     let active = true;
     async function loadRemoteState() {
-      const [health, products, remoteCart, remoteWishlist, remoteOrders] = await Promise.all([
+      const [health, products, remoteCart, remoteWishlist, remoteOrders, remoteNotifs] = await Promise.all([
         checkBackendHealth(),
         fetchProductsFromBackend(),
         fetchCart(),
         fetchWishlist(),
         fetchOrders(),
+        fetchNotifications(),
       ]);
       if (!active) return;
       setDbStatus(health.connected ? "connected" : "offline");
@@ -145,6 +152,19 @@ function App() {
       if (remoteCart.success) setCart(remoteCart.items || []);
       if (remoteWishlist.success) setWishlistItems(remoteWishlist.items || []);
       if (remoteOrders.success) setOrders(remoteOrders.orders || []);
+      if (remoteNotifs?.success) {
+        // If there are newly arrived unread notifications, alert the user with a toast
+        setNotifications((prev) => {
+          const prevUnreadIds = new Set(prev.filter((n) => !n.read).map((n) => n.id));
+          const newNotifs = remoteNotifs.data || [];
+          const freshlyArrived = newNotifs.filter((n) => !n.read && !prevUnreadIds.has(n.id));
+          if (freshlyArrived.length > 0 && prev.length > 0) {
+            const first = freshlyArrived[0];
+            showToast(`${first.title} — ${first.message}`);
+          }
+          return newNotifs;
+        });
+      }
     }
     loadRemoteState();
     const syncInterval = setInterval(loadRemoteState, 5000);
@@ -276,6 +296,18 @@ function App() {
     }
   };
 
+  const handleMarkNotificationRead = async (notificationId) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
+    );
+    await markNotificationRead(notificationId);
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    await markAllNotificationsRead();
+  };
+
   const handleLogout = async () => {
     await logoutUser(); // also clears token via setStoredToken(null)
     try { localStorage.removeItem("campuscart-user"); } catch {}
@@ -284,6 +316,7 @@ function App() {
     setCart([]);
     setWishlistItems([]);
     setOrders([]);
+    setNotifications([]);
     setMongoProducts([]);
     navigate("/");
     showToast("👋 Signed out.");
@@ -544,31 +577,40 @@ function App() {
             </button>
 
             {isLoggedIn && (
-              <button
-                onClick={() => navigateTo("cart")}
-                className="relative text-xs text-neutral-300 hover:text-white flex items-center gap-1 font-semibold transition px-2 py-1 rounded-full hover:bg-white/10"
-                title="Cart"
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
+              <>
+                <NotificationBell
+                  notifications={notifications}
+                  unreadCount={notifications.filter((n) => !n.read).length}
+                  onMarkRead={handleMarkNotificationRead}
+                  onMarkAllRead={handleMarkAllNotificationsRead}
+                />
+
+                <button
+                  onClick={() => navigateTo("cart")}
+                  className="relative text-xs text-neutral-300 hover:text-white flex items-center gap-1 font-semibold transition px-2 py-1 rounded-full hover:bg-white/10"
+                  title="Cart"
                 >
-                  <path d="M5 8h14l1 13H4L5 8Z" />
-                  <path d="M9 8V6a3 3 0 0 1 6 0v2" />
-                </svg>
-                {cart.length > 0 && (
-                  <span className="bg-white text-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                    {cart.reduce((a, b) => a + b.qty, 0)}
-                  </span>
-                )}
-              </button>
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 8h14l1 13H4L5 8Z" />
+                    <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+                  </svg>
+                  {cart.length > 0 && (
+                    <span className="bg-white text-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                      {cart.reduce((a, b) => a + b.qty, 0)}
+                    </span>
+                  )}
+                </button>
+              </>
             )}
 
             {isLoggedIn ? (
@@ -884,6 +926,9 @@ function App() {
       currentUser={currentUser}
       onDeleteProduct={handleDeleteProduct}
       onEditProduct={handleEditProduct}
+      notifications={notifications}
+      onMarkRead={handleMarkNotificationRead}
+      onMarkAllRead={handleMarkAllNotificationsRead}
     />
   }
 />

@@ -572,3 +572,57 @@ export async function cancelOrderOnBackend(
 export async function loginUserOnBackend(email, password = "student123") {
   return loginUser(email, password);
 }
+
+/* =========================================================================
+   NOTIFICATIONS (SELLER ALERTS)
+   ========================================================================= */
+
+export async function fetchNotifications() {
+  try {
+    const data = await request("/api/v1/notifications");
+    return {
+      success: true,
+      data: Array.isArray(data) ? data : [],
+    };
+  } catch (error) {
+    return {
+      success: false,
+      data: [],
+      error: error.message,
+    };
+  }
+}
+
+export async function markNotificationRead(notificationId) {
+  try {
+    const data = await request(`/api/v1/notifications/${notificationId}/read`, {
+      method: "PATCH",
+    });
+    return {
+      success: true,
+      data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+export async function markAllNotificationsRead() {
+  try {
+    const data = await request("/api/v1/notifications/read-all", {
+      method: "POST",
+    });
+    return {
+      success: true,
+      data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}

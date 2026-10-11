@@ -5,6 +5,9 @@ function SellerDashboard({
   currentUser,
   onEditProduct,
   onDeleteProduct,
+  notifications = [],
+  onMarkRead,
+  onMarkAllRead,
 }) {
   const [editingProduct, setEditingProduct] = useState(null);
 
@@ -35,23 +38,36 @@ function SellerDashboard({
     (product) => Number(product.stock) <= 0
   ).length;
 
+  const unreadSoldNotifs = notifications.filter((n) => !n.read);
+
   return (
     <div className="min-h-screen bg-neutral-50 px-4 pb-8 pt-24 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
 
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-black tracking-tight text-neutral-900">
-            Seller Dashboard
-          </h1>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight text-neutral-900">
+              Seller Dashboard
+            </h1>
 
-          <p className="mt-2 text-sm text-neutral-500">
-            Manage your CampusCart listings and inventory.
-          </p>
+            <p className="mt-2 text-sm text-neutral-500">
+              Manage your CampusCart listings, inventory, and sales notifications.
+            </p>
+          </div>
+
+          {notifications.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1.5 rounded-full border border-emerald-200 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                {notifications.length} Total Sales Alerts
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Stats */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <div className="mb-8 grid gap-4 sm:grid-cols-4">
 
           {/* Total Listings */}
           <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
@@ -85,7 +101,103 @@ function SellerDashboard({
               {outOfStock}
             </p>
           </div>
+
+          {/* Sold Alerts */}
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-neutral-500">
+              Pending Pickups
+            </p>
+
+            <p className="mt-2 text-3xl font-black text-amber-600 flex items-center gap-2">
+              {unreadSoldNotifs.length}
+              {unreadSoldNotifs.length > 0 && (
+                <span className="text-xs font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                  Action required
+                </span>
+              )}
+            </p>
+          </div>
         </div>
+
+        {/* Recent Buyer Orders & Sales Alerts */}
+        {notifications.length > 0 && (
+          <div className="mb-8 rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+            <div className="border-b border-neutral-200 px-5 py-4 flex items-center justify-between bg-neutral-50/50">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🎉</span>
+                <h2 className="text-base font-bold text-neutral-900">
+                  Recent Sales &amp; Item Purchases
+                </h2>
+                {unreadSoldNotifs.length > 0 && (
+                  <span className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
+                    {unreadSoldNotifs.length} unread
+                  </span>
+                )}
+              </div>
+
+              {unreadSoldNotifs.length > 0 && onMarkAllRead && (
+                <button
+                  type="button"
+                  onClick={onMarkAllRead}
+                  className="text-xs font-semibold text-neutral-500 hover:text-neutral-900 transition"
+                >
+                  Mark all as read
+                </button>
+              )}
+            </div>
+
+            <div className="divide-y divide-neutral-100">
+              {notifications.map((notif) => (
+                <div
+                  key={notif.id}
+                  onClick={() => onMarkRead && onMarkRead(notif.id)}
+                  className={`p-4 transition flex items-start gap-4 cursor-pointer ${
+                    !notif.read ? "bg-amber-50/50 hover:bg-amber-50" : "hover:bg-neutral-50"
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center text-lg flex-shrink-0">
+                    🛍️
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-bold text-neutral-900">
+                        {notif.title}
+                      </h3>
+                      {!notif.read && (
+                        <span className="text-[10px] bg-amber-200 text-amber-900 font-extrabold px-2 py-0.5 rounded-full">
+                          NEW SALE
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-neutral-600 mt-1 leading-relaxed">
+                      {notif.message}
+                    </p>
+
+                    <div className="flex items-center gap-3 mt-2 text-[11px] text-neutral-400">
+                      {notif.pickup_token && (
+                        <span className="font-mono bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded font-bold">
+                          Safe Handshake Token: {notif.pickup_token}
+                        </span>
+                      )}
+                      <span>
+                        {notif.created_at
+                          ? new Date(notif.created_at).toLocaleString([], {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "Recently"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Listings */}
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">

@@ -67,17 +67,23 @@ async def checkout(payload: CheckoutRequest, current=Depends(get_current_user)):
                     snapshot["title"] = product.get("title", item.title)
                     snapshot["image"] = product.get("image", item.image)
                     snapshot["seller"] = (product.get("seller") or {}).get("name", item.seller)
+                    snapshot["sellerId"] = str(product.get("sellerId") or "")
                     snapshot["pickupLocation"] = product.get("pickupLocation", item.pickupLocation)
                     pickup_location = snapshot["pickupLocation"] or pickup_location
                     total += snapshot["price"] * snapshot["qty"]
                     order_items.append(snapshot)
 
+                order_pickup_token = secrets.token_hex(3).upper()
+                now_str = datetime.utcnow().isoformat()
                 order = {
                     "buyer_id": current["sub"],
-                    "buyer": {"email": current["email"]},
-                    "created_at": datetime.utcnow().isoformat(),
+                    "buyer": {
+                        "email": current["email"],
+                        "name": current.get("name", "Student Buyer"),
+                    },
+                    "created_at": now_str,
                     "status": "Pending Pickup",
-                    "pickupToken": secrets.token_hex(3).upper(),
+                    "pickupToken": order_pickup_token,
                     "pickupLocation": pickup_location,
                     "items": order_items,
                     "total": total,
@@ -85,6 +91,30 @@ async def checkout(payload: CheckoutRequest, current=Depends(get_current_user)):
                 inserted = await db["orders"].insert_one(order, session=sess)
                 await db["carts"].update_one({"user_id": current["sub"]}, {"$set": {"items": []}}, upsert=True, session=sess)
                 order["id"] = str(inserted.inserted_id)
+
+                # ------------------------------------------------------------
+                # SELLER NOTIFICATIONS:
+                # Notify each seller whose listing was purchased.
+                # ------------------------------------------------------------
+                buyer_name = current.get("name", current.get("email", "A student"))
+                for s_item in order_items:
+                    target_seller_id = s_item.get("sellerId")
+                    if target_seller_id and target_seller_id != str(current["sub"]):
+                        notification = {
+                            "recipient_id": target_seller_id,
+                            "sender_id": str(current["sub"]),
+                            "sender_name": buyer_name,
+                            "type": "ITEM_SOLD",
+                            "title": f"🎉 Item Sold: {s_item['title']}",
+                            "message": f"{buyer_name} just purchased {s_item['qty']}x '{s_item['title']}' for ₹{s_item['price'] * s_item['qty']:.2f}. Safe Handshake Token: {order_pickup_token}",
+                            "order_id": order["id"],
+                            "product_id": str(s_item.get("id")),
+                            "pickup_token": order_pickup_token,
+                            "read": False,
+                            "created_at": now_str,
+                        }
+                        await db["notifications"].insert_one(notification, session=sess)
+
                 return order
 
             return await session.with_transaction(transaction)

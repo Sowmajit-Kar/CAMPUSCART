@@ -11,6 +11,7 @@ from app.routes.auth import router as auth_router
 from app.routes.cart import router as cart_router
 from app.routes.wishlist import router as wishlist_router
 from app.routes.orders import router as orders_router
+from app.routes.notifications import router as notifications_router
 from app.data.initial_data import INITIAL_PRODUCTS
 
 logging.basicConfig(level=logging.INFO)
@@ -107,3 +108,4 @@ app.include_router(products_router)
 app.include_router(cart_router)
 app.include_router(wishlist_router)
 app.include_router(orders_router)
+app.include_router(notifications_router)
