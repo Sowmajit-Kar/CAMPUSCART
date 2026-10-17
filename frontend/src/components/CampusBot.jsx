@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { askCampusBot } from "../services/api";
 
 // Web Audio API synthesizer for friendly robot vocalization
 const playRobotSound = (type = "chirp", muted = false) => {
@@ -361,7 +362,7 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
     setTimeout(() => setEmotion("normal"), 1200);
   };
 
-  // Send message in chat
+  // Send message in chat with real Gemini AI API
   const handleSendMessage = async (customPrompt) => {
     const query = (customPrompt || userInput).trim();
     if (!query) return;
@@ -379,43 +380,54 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
     setEmotion("curious");
     playRobotSound("chirp", !soundEnabled);
 
-    // Simulated AI response
-    setTimeout(() => {
-      let botReply = "";
-      const lower = query.toLowerCase();
+    // Format chat history turns for LLM context
+    const historyTurns = chatMessages.slice(-6).map((msg) => ({
+      role: msg.sender === "user" ? "user" : "model",
+      text: msg.text,
+    }));
 
-      if (lower.includes("book") || lower.includes("notes") || lower.includes("study")) {
-        botReply = "📚 I found textbook listings in the marketplace! Check Engineering Mathematics, DSA by Cormen, or upload your own notes in the Sell tab.";
-        setEmotion("happy");
-      } else if (lower.includes("price") || lower.includes("deal") || lower.includes("cheap")) {
-        botReply = "🏷️ Verified student sellers on CampusCart offer 40%–70% off retail prices, plus peer pickup with zero delivery fees!";
-        setEmotion("excited");
-      } else if (lower.includes("safe") || lower.includes("trust") || lower.includes("qr")) {
-        botReply = "🛡️ CampusCart uses the QR Handshake Protocol! Only release your verification code when you physically meet and inspect the product.";
-        setEmotion("happy");
-      } else if (lower.includes("hi") || lower.includes("hello") || lower.includes("hey")) {
-        botReply = `Hey there! 🤖 Hope classes are going great. Need help finding campus equipment, hostel gear, or calculators?`;
-        setEmotion("happy");
-      } else if (lower.includes("love") || lower.includes("cute") || lower.includes("bot")) {
-        botReply = "Aww, thank you! Beep boop! 💖 Always glad to help.";
-        setEmotion("love");
-      } else {
-        botReply = `🤖 I'm indexing the campus catalog for "${query}". You can browse live items on the Marketplace or filter by your college hub!`;
-        setEmotion("normal");
-      }
+    try {
+      const response = await askCampusBot({
+        message: query,
+        history: historyTurns,
+        campus: currentUser?.campus || "Jadavpur University",
+        userName: currentUser?.name ? currentUser.name.split(" ")[0] : "Student",
+        clientProducts: allProducts,
+      });
+
+      const replyText = response?.reply || "I didn't receive a response. Please ask me again!";
 
       setChatMessages((prev) => [
         ...prev,
         {
           id: Date.now() + "-bot",
           sender: "bot",
-          text: botReply,
+          text: replyText,
           time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
+
+      if (response?.keyMissing) {
+        setEmotion("curious");
+      } else {
+        setEmotion("happy");
+        playRobotSound("happy", !soundEnabled);
+      }
+    } catch (err) {
+      console.error("CampusBot chat error:", err);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + "-bot",
+          sender: "bot",
+          text: `⚠️ I had trouble connecting to the campus AI brain (${err.message || "Network error"}). Please check your connection or Gemini API key!`,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+      setEmotion("sleepy");
+    } finally {
       setIsThinking(false);
-      playRobotSound("happy", !soundEnabled);
-    }, 700);
+    }
   };
 
   // DYNAMIC AUTOMATIC EYE GRAPHICS
@@ -930,7 +942,7 @@ export default function CampusBot({ currentUser, onNavigate, allProducts = [] })
           {/* Micro Footer Notice */}
           <div className="px-4 py-1.5 bg-black/30 text-center text-[10px] text-white/40 flex items-center justify-between">
             <span>✨ Drag bot anywhere across page</span>
-            <span className="text-emerald-400">AI Hook Ready</span>
+            <span className="text-emerald-400 font-medium">⚡ Gemini Live Catalog</span>
           </div>
         </div>
       )}

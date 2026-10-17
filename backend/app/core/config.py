@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     # CORS Frontend Domain
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
+    # Google Gemini AI
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
